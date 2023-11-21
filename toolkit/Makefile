@@ -55,6 +55,7 @@ INITRD_CACHE_SUMMARY                 ?=
 PACKAGE_ARCHIVE                      ?=
 PACKAGE_BUILD_RETRIES                ?= 1
 CHECK_BUILD_RETRIES                  ?= 1
+EXTRA_BUILD_LAYERS                   ?= 0
 REFRESH_WORKER_CHROOT                ?= y
 # Set to 0 to use the number of logical CPUs.
 CONCURRENT_PACKAGE_BUILDS            ?= 0
@@ -184,17 +185,19 @@ include $(SCRIPTS_DIR)/profile.mk
 # Set the variables for build number, distro tag, etc
 include $(SCRIPTS_DIR)/build_tag.mk
 
+# go utilities with:
+#   go-tools, clean-go-tools, go-tidy-all (tidy go utilities before committing) go-test-coverage
+include $(SCRIPTS_DIR)/tools.mk
+
 # Bootstrap the toolchain's compilers and other tools with:
 #   toolchain, raw-toolchain, clean-toolchain, check-manifests, check-x86_64-manifests, check-aarch64-manifests
 include $(SCRIPTS_DIR)/toolchain.mk
 
-# go utilities with:
-#   go-tools, clean-go-tools, go-tidy-all (tidy go utilities before committing) go-test-coverage
 # chroot worker with:
 #   chroot-tools clean-chroot-tools
 # macro definitions with:
 #   macro-tools clean-macro-tools
-include $(SCRIPTS_DIR)/tools.mk
+include $(SCRIPTS_DIR)/chroot.mk
 
 # Create SRPMS from local SPECS with:
 #   input-srpms, clean-input-srpms
