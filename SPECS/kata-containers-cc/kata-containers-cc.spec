@@ -8,8 +8,8 @@
 %global debug_package %{nil}
 
 Name:         kata-containers-cc
-Version:      0.6.2
-Release:      2%{?dist}
+Version:      0.6.5
+Release:      1%{?dist}
 Summary:      Kata Confidential Containers
 License:      ASL 2.0
 Vendor:       Microsoft Corporation
@@ -292,6 +292,9 @@ install -D -m 0755 %{_builddir}/%{name}-%{version}/tools/osbuilder/image-builder
 %exclude %{osbuilder}/tools/osbuilder/rootfs-builder/ubuntu
 
 %changelog
+* Thu Dec 14 2023 CBL-Mariner Servicing Account <cblmargh@microsoft.com> - 0.6.5-1
+- Auto-upgrade to 0.6.5
+
 *   Tue Dec 05 2023 Archana Choudhary <archana1@microsoft.com> - 0.6.2-2
 -   Add qemu-virtiofsd as a requirement
 
