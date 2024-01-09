@@ -17,8 +17,8 @@
 %global short_name      commons-%{base_name}
 Summary:        Command Line Interface Library for Java
 Name:           apache-commons-cli
-Version:        1.4
-Release:        5%{?dist}
+Version:        1.6.0
+Release:        1%{?dist}
 License:        Apache-2.0
 Vendor:         Microsoft Corporation
 Distribution:   Mariner
@@ -26,7 +26,6 @@ Group:          Development/Libraries/Java
 URL:            http://commons.apache.org/%{base_name}/
 Source0:        http://archive.apache.org/dist/commons/%{base_name}/source/commons-cli-%{version}-src.tar.gz
 Source1:        %{name}-build.xml.tar.bz2
-Patch0:         CLI-253-workaround.patch
 BuildRequires:  ant
 BuildRequires:  fdupes
 BuildRequires:  java-devel >= 1.8
@@ -53,11 +52,18 @@ This package contains the API documentation for %{name}.
 
 %prep
 %setup -q -n %{short_name}-%{version}-src -a1
-%patch0 -p1
 
 %pom_remove_parent
 
 %build
+# There is a circular dependency between maven and the apache packages.
+# To break the circular dependency, we are building this package using ant
+# instead of maven.
+# The source tar comes with a pom.xml which is used by maven.
+# ant requires a project build xml file that is not distributed with the
+# source tar. Other distributions, like OpenSuse, are also using ant to
+# build this package and provide an ant build xml file.
+# See https://build.opensuse.org/package/view_file/openSUSE:Factory/apache-commons-cli/apache-commons-cli-build.xml?expand=1
 ant -Dmaven.mode.offline=true package javadoc \
     -Dmaven.test.skip=true \
     -lib %{_datadir}/java
@@ -87,6 +93,10 @@ cp -pr target/site/api*/* %{buildroot}%{_javadocdir}/%{name}
 %{_javadocdir}/%{name}
 
 %changelog
+* Tue Jan 09 2024 George Mileka <gmileka@microsoft.com> - 1.6.0-1
+- Updated to 1.6.0-1.
+- Removed patch CLI-253-workaround.patch.
+
 * Fri Mar 17 2023 Mykhailo Bykhovtsev <mbykhovtsev@microsoft.com> - 1.4-5
 - Moved from extended to core
 - License verified
