@@ -19,7 +19,7 @@ Version:        1.21.6
 Release:        1%{?dist}
 License:        BSD-3-Clause
 Vendor:         Microsoft Corporation
-Distribution:   Mariner
+Distribution:   Azure Linux
 Group:          System Environment/Security
 URL:            https://github.com/microsoft/go
 Source0:        https://github.com/microsoft/go/releases/download/v%{version}-%{ms_go_revision}/go.%{ms_go_buildid}.src.tar.gz
