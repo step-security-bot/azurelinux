@@ -16,39 +16,6 @@ Source0:        https://git.savannah.gnu.org/cgit/grub.git/snapshot/grub-%{versi
 Source1:        https://git.savannah.gnu.org/cgit/gnulib.git/snapshot/gnulib-%{gnulibversion}.tar.gz
 Source2:        sbat.csv.in
 Source3:        macros.grub2
-# Incorporate relevant patches from Fedora 34
-# EFI Secure Boot / Handover Protocol patches
-Patch0001:      0001-Add-support-for-Linux-EFI-stub-loading.patch
-Patch0002:      0002-Rework-linux-command.patch
-Patch0003:      0003-Rework-linux16-command.patch
-Patch0004:      0004-Add-secureboot-support-on-efi-chainloader.patch
-Patch0005:      0005-Make-any-of-the-loaders-that-link-in-efi-mode-honor-.patch
-Patch0006:      0006-Handle-multi-arch-64-on-32-boot-in-linuxefi-loader.patch
-# Kernel cmdline fix
-Patch0017:      0017-Pass-x-hex-hex-straight-through-unmolested.patch
-# Nicer documentation. Also makes patch #166 apply cleanly
-Patch0037:      0037-Replace-a-lot-of-man-pages-with-slightly-nicer-ones.patch
-Patch0052:      0052-Make-our-info-pages-say-grub2-where-appropriate.patch
-# General fix
-Patch0069:      0069-Make-pmtimer-tsc-calibration-not-take-51-seconds-to-.patch
-# ARM64 build patch
-Patch0104:      0104-Rework-how-the-fdt-command-builds.patch
-# General fixes (> 4GB DMA, TPM measurements, etc)
-Patch0112:      0112-Try-to-pick-better-locations-for-kernel-and-initrd.patch
-Patch0115:      0115-x86-efi-Use-bounce-buffers-for-reading-to-addresses-.patch
-Patch0116:      0116-x86-efi-Re-arrange-grub_cmd_linux-a-little-bit.patch
-Patch0117:      0117-x86-efi-Make-our-own-allocator-for-kernel-stuff.patch
-Patch0118:      0118-x86-efi-Allow-initrd-params-cmdline-allocations-abov.patch
-Patch0148:      0148-efi-Set-image-base-address-before-jumping-to-the-PE-.patch
-Patch0149:      0149-tpm-Don-t-propagate-TPM-measurement-errors-to-the-ve.patch
-Patch0150:      0150-x86-efi-Reduce-maximum-bounce-buffer-size-to-16-MiB.patch
-Patch0156:      0156-efilinux-Fix-integer-overflows-in-grub_cmd_initrd.patch
-# CVE-2020-15705
-Patch0157:      0157-linuxefi-fail-kernel-validation-without-shim-protoco.patch
-# Fix to prevent user from overwriting signed grub binary using grub2-install
-Patch0166:      0166-grub-install-disable-support-for-EFI-platforms.patch
-# Fix to reset the global errno to success upon success.
-Patch0170:      0170-fix-memory-alloc-errno-reset.patch
 BuildRequires:  autoconf
 BuildRequires:  device-mapper-devel
 BuildRequires:  python3
