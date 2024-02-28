@@ -1,5 +1,6 @@
 %global security_hardening nonow
 %define glibc_target_cpu %{_build}
+%global glibc_stable_commit d47c5e4
 
 # Don't depend on bash by default
 %define __requires_exclude ^/(bin|usr/bin).*$
@@ -7,13 +8,13 @@
 Summary:        Main C library
 Name:           glibc
 Version:        2.35
-Release:        6%{?dist}
+Release:        500%{?dist}
 License:        BSD AND GPLv2+ AND Inner-Net AND ISC AND LGPLv2+ AND MIT
 Vendor:         Microsoft Corporation
 Distribution:   Mariner
 Group:          Applications/System
 URL:            https://www.gnu.org/software/libc
-Source0:        https://ftp.gnu.org/gnu/glibc/%{name}-%{version}.tar.xz
+Source0:        https://ftp.gnu.org/gnu/glibc/%{name}-%{version}-%{glibc_stable_commit}.tar.gz
 Source1:        locale-gen.sh
 Source2:        locale-gen.conf
 Patch0:         https://www.linuxfromscratch.org/patches/downloads/glibc/glibc-2.35-fhs-1.patch
@@ -27,9 +28,11 @@ Patch3:         CVE-2020-1751.nopatch
 # Rationale: Exploit requires crafted pattern in regex compiler meant only for trusted content
 Patch4:         CVE-2018-20796.nopatch
 Patch5:         glibc-2.34_pthread_cond_wait.patch
-Patch6:         CVE-2023-4911.patch
-Patch7:         CVE-2023-4806.patch
-Patch8:         CVE-2023-5156.patch
+Patch6:         CVE-2023-4911.nopatch
+Patch7:         CVE-2023-4806.nopatch
+Patch8:         CVE-2023-5156.nopatch
+Patch9:         nscd_do_not_rebuild_getaddrinfo.patch
+Patch10:        get_nscd_addresses_fix_subscript_typos.patch
 BuildRequires:  bison
 BuildRequires:  gawk
 BuildRequires:  gettext
@@ -108,12 +111,12 @@ Requires:       %{name} = %{version}-%{release}
 Name Service Cache Daemon
 
 %prep
-%autosetup -p1
+%autosetup -p1 -n %{name}
 sed -i 's/\\$$(pwd)/`pwd`/' timezone/Makefile
 install -vdm 755 %{_builddir}/%{name}-build
 # do not try to explicitly provide GLIBC_PRIVATE versioned libraries
-%define __find_provides %{_builddir}/%{name}-%{version}/find_provides.sh
-%define __find_requires %{_builddir}/%{name}-%{version}/find_requires.sh
+%define __find_provides %{_builddir}/%{name}/find_provides.sh
+%define __find_requires %{_builddir}/%{name}/find_requires.sh
 
 # create find-provides and find-requires script in order to ignore GLIBC_PRIVATE errors
 cat > find_provides.sh << _EOF
@@ -145,7 +148,7 @@ export CFLAGS
 export CXXFLAGS
 
 cd %{_builddir}/%{name}-build
-../%{name}-%{version}/configure \
+../%{name}/configure \
         --prefix=%{_prefix} \
         --disable-profile \
         --disable-werror \
@@ -168,7 +171,7 @@ make install_root=%{buildroot} install
 install -vdm 755 %{buildroot}%{_sysconfdir}/ld.so.conf.d
 install -vdm 755 %{buildroot}%{_var}/cache/nscd
 install -vdm 755 %{buildroot}%{_libdir}/locale
-cp -v ../%{name}-%{version}/nscd/nscd.conf %{buildroot}%{_sysconfdir}/nscd.conf
+cp -v ../%{name}/nscd/nscd.conf %{buildroot}%{_sysconfdir}/nscd.conf
 #       Install locale generation script and config file
 cp -v %{SOURCE2} %{buildroot}%{_sysconfdir}
 cp -v %{SOURCE1} %{buildroot}/sbin
@@ -224,6 +227,8 @@ ls -1 %{buildroot}%{_lib64dir}/*.a | grep -v -e "$static_libs_in_devel_pattern" 
 %check
 cd %{_builddir}/glibc-build
 make %{?_smp_mflags} check ||:
+
+#make subdirs=time -j8 check 
 # These 2 persistant false positives are OK
 # XPASS for: elf/tst-protected1a and elf/tst-protected1b
 [ `grep ^XPASS tests.sum | wc -l` -ne 2 -a `grep "^XPASS: elf/tst-protected1[ab]" tests.sum | wc -l` -ne 2 ] && exit 1 ||:
