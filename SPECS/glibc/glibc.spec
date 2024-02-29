@@ -8,12 +8,17 @@
 Summary:        Main C library
 Name:           glibc
 Version:        2.35
-Release:        500%{?dist}
+Release:        7%{?dist}
 License:        BSD AND GPLv2+ AND Inner-Net AND ISC AND LGPLv2+ AND MIT
 Vendor:         Microsoft Corporation
 Distribution:   Mariner
 Group:          Applications/System
 URL:            https://www.gnu.org/software/libc
+# Create source tar by 
+# git clone git://sourceware.org/git/glibc.git
+# cd glibc
+# git checkout %{name}-%{version}
+# git archive --format=tar --output=%{name}-%{version}-%{glibc_stable_commit}.tar.gz --prefix=glibc/ HEAD
 Source0:        https://ftp.gnu.org/gnu/glibc/%{name}-%{version}-%{glibc_stable_commit}.tar.gz
 Source1:        locale-gen.sh
 Source2:        locale-gen.conf
@@ -327,6 +332,10 @@ grep "^FAIL: nptl/tst-eintr1" tests.sum >/dev/null && n=$((n+1)) ||:
 %defattr(-,root,root)
 
 %changelog
+* Wed Feb 28 2024 Rachel Menge <rachelmenge@microsoft.com> - 2.35-7
+- Update source to latest stable commit (d47c5e4)
+- Includes fix for nscd due to CVE-2023-4806 and CVE-2023-5156
+
 * Wed Oct 04 2023 Minghe Ren <mingheren@microsoft.com> - 2.35-6
 - Add patches for CVE-2023-4806 and CVE-2023-5156
 
