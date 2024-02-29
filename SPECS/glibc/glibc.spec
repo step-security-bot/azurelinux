@@ -18,7 +18,8 @@ URL:            https://www.gnu.org/software/libc
 # git clone git://sourceware.org/git/glibc.git
 # cd glibc
 # git checkout %{name}-%{version}
-# git archive --format=tar --output=%{name}-%{version}-%{glibc_stable_commit}.tar.gz --prefix=glibc/ HEAD
+# cd ..
+# tar --exclude=.git --create --gzip --file=glibc-2.35-d47c5e4.tar.gz glibc/
 Source0:        https://ftp.gnu.org/gnu/glibc/%{name}-%{version}-%{glibc_stable_commit}.tar.gz
 Source1:        locale-gen.sh
 Source2:        locale-gen.conf
