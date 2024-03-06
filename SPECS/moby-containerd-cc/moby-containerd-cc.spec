@@ -22,7 +22,6 @@ Patch2: fix_cc_tests_for_golang1.21.patch
 
 %{?systemd_requires}
 
-BuildRequires: btrfs-progs-devel
 BuildRequires: git
 BuildRequires: golang >= 1.19.0
 BuildRequires: go-md2man
