@@ -19,7 +19,6 @@ Source2: containerd.toml
 
 %{?systemd_requires}
 
-BuildRequires: btrfs-progs-devel
 BuildRequires: git
 BuildRequires: golang >= 1.19.0
 BuildRequires: go-md2man
