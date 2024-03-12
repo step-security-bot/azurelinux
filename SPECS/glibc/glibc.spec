@@ -8,7 +8,7 @@
 Summary:        Main C library
 Name:           glibc
 Version:        2.35
-Release:        7%{?dist}
+Release:        200%{?dist}
 License:        BSD AND GPLv2+ AND Inner-Net AND ISC AND LGPLv2+ AND MIT
 Vendor:         Microsoft Corporation
 Distribution:   Mariner
@@ -39,10 +39,13 @@ Patch7:         CVE-2023-4806.nopatch
 Patch8:         CVE-2023-5156.nopatch
 Patch9:         nscd_do_not_rebuild_getaddrinfo.patch
 Patch10:        get_nscd_addresses_fix_subscript_typos.patch
+Patch11:        time_test.patch
+Patch12:        0001-unused-value.patch
 BuildRequires:  bison
 BuildRequires:  gawk
 BuildRequires:  gettext
 BuildRequires:  kernel-headers
+#BuildRequires:  libtirpc-devel
 BuildRequires:  texinfo
 Requires:       filesystem
 Provides:       %{name}-common = %{version}-%{release}
@@ -232,7 +235,9 @@ ls -1 %{buildroot}%{_lib64dir}/*.a | grep -v -e "$static_libs_in_devel_pattern" 
 
 %check
 cd %{_builddir}/glibc-build
-make %{?_smp_mflags} check ||:
+echo "cflags: $CFLAGS"
+echo "cxxflags: $CXXFLAGS"
+make check ||:
 
 #make subdirs=time -j8 check 
 # These 2 persistant false positives are OK
