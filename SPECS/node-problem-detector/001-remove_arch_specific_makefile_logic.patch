@@ -1,6 +1,6 @@
 diff -Naur a/Makefile b/Makefile
 --- a/Makefile	2024-02-28 17:22:37.000000000 +0000
-+++ b/Makefile	2024-03-19 00:49:21.050057317 +0000
++++ b/Makefile	2024-03-19 21:26:21.689660594 +0000
 @@ -22,9 +22,9 @@
  all: build
  
@@ -48,12 +48,15 @@ diff -Naur a/Makefile b/Makefile
 -output/linux_amd64/bin/%: $(PKG_SOURCES)
 -	GOOS=linux GOARCH=amd64 CGO_ENABLED=$(CGO_ENABLED) \
 -	  CC=x86_64-linux-gnu-gcc go build \
--		-o $@ \
--		-ldflags '-X $(PKG)/pkg/version.version=$(VERSION)' \
--		-tags "$(LINUX_BUILD_TAGS)" \
--		./cmd/$(subst -,,$*)
--	touch $@
--
++output/linux/bin/%: $(PKG_SOURCES)
++	GOOS=linux CGO_ENABLED=$(CGO_ENABLED) GO111MODULE=on \
++	  go build \
+ 		-o $@ \
+ 		-ldflags '-X $(PKG)/pkg/version.version=$(VERSION)' \
+ 		-tags "$(LINUX_BUILD_TAGS)" \
+ 		./cmd/$(subst -,,$*)
+ 	touch $@
+ 
 -output/linux_amd64/test/bin/%: $(PKG_SOURCES)
 -	cd test && \
 -	GOOS=linux GOARCH=amd64 CGO_ENABLED=$(CGO_ENABLED) \
@@ -65,15 +68,12 @@ diff -Naur a/Makefile b/Makefile
 -output/linux_arm64/bin/%: $(PKG_SOURCES)
 -	GOOS=linux GOARCH=arm64 CGO_ENABLED=$(CGO_ENABLED) \
 -	  CC=aarch64-linux-gnu-gcc go build \
-+output/linux/bin/%: $(PKG_SOURCES)
-+	GOOS=linux CGO_ENABLED=$(CGO_ENABLED) GO111MODULE=on \
-+	  go build \
- 		-o $@ \
- 		-ldflags '-X $(PKG)/pkg/version.version=$(VERSION)' \
- 		-tags "$(LINUX_BUILD_TAGS)" \
- 		./cmd/$(subst -,,$*)
- 	touch $@
- 
+-		-o $@ \
+-		-ldflags '-X $(PKG)/pkg/version.version=$(VERSION)' \
+-		-tags "$(LINUX_BUILD_TAGS)" \
+-		./cmd/$(subst -,,$*)
+-	touch $@
+-
 -output/linux_arm64/test/bin/%: $(PKG_SOURCES)
 -	cd test && \
 -	GOOS=linux GOARCH=arm64 CGO_ENABLED=$(CGO_ENABLED) \
@@ -84,3 +84,37 @@ diff -Naur a/Makefile b/Makefile
  		-o ../$@ \
  		-tags "$(LINUX_BUILD_TAGS)" \
  		./e2e/$(subst -,,$*)
+@@ -182,7 +148,7 @@
+ # In the future these targets should be deprecated.
+ ./bin/log-counter: $(PKG_SOURCES)
+ ifeq ($(ENABLE_JOURNALD), 1)
+-	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux GOARCH=$(GOARCH) go build \
++	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux go build \
+ 		-o bin/log-counter \
+ 		-ldflags '-X $(PKG)/pkg/version.version=$(VERSION)' \
+ 		-tags "$(LINUX_BUILD_TAGS)" \
+@@ -192,7 +158,7 @@
+ endif
+ 
+ ./bin/node-problem-detector: $(PKG_SOURCES)
+-	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux GOARCH=$(GOARCH) go build \
++	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux go build \
+ 		-o bin/node-problem-detector \
+ 		-ldflags '-X $(PKG)/pkg/version.version=$(VERSION)' \
+ 		-tags "$(LINUX_BUILD_TAGS)" \
+@@ -200,13 +166,13 @@
+ 
+ ./test/bin/problem-maker: $(PKG_SOURCES)
+ 	cd test && \
+-	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux GOARCH=$(GOARCH) go build \
++	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux go build \
+ 		-o bin/problem-maker \
+ 		-tags "$(LINUX_BUILD_TAGS)" \
+ 		./e2e/problemmaker/problem_maker.go
+ 
+ ./bin/health-checker: $(PKG_SOURCES)
+-	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux GOARCH=$(GOARCH) go build \
++	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux go build \
+ 		-o bin/health-checker \
+ 		-ldflags '-X $(PKG)/pkg/version.version=$(VERSION)' \
+ 		-tags "$(LINUX_BUILD_TAGS)" \
