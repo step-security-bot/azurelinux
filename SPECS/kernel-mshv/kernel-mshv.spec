@@ -96,6 +96,9 @@ make LC_ALL=  ARCH=%{arch} olddefconfig
 %build
 make VERBOSE=1 KBUILD_BUILD_VERSION="1" KBUILD_BUILD_HOST="CBL-Mariner" ARCH=%{arch} %{?_smp_mflags}
 
+# Compile perf, python3-perf
+make -C tools/perf PYTHON=%{python3} all
+
 %define __modules_install_post \
 for MODULE in `find %{buildroot}/lib/modules/%{uname_r} -name *.ko` ; do \
     ./scripts/sign-file sha512 certs/signing_key.pem certs/signing_key.x509 $MODULE \
