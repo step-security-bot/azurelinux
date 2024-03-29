@@ -4,7 +4,7 @@
 Summary:        A framework for creating UPnP devices & control points
 Name:           gupnp
 Version:        1.6.3
-Release:        3%{?dist}
+Release:        4%{?dist}
 License:        LGPLv2+
 Vendor:         Microsoft Corporation
 Distribution:   Mariner
@@ -86,7 +86,7 @@ This package contains developer documentation for %{name}.
 %dir %{_datadir}/vala/vapi
 %{_datadir}/vala/vapi/gupnp*
 %if %{with docs}
-%{_mandir}/man1/gupnp-binding-tool-%{apiver}.1*
+%{_mandir}/man1/gupnp-binding-tool-%{apiver}.*
 %endif
 
 %if %{with docs}
@@ -95,6 +95,9 @@ This package contains developer documentation for %{name}.
 %endif
 
 %changelog
+* Fri Mar 29 2024 Jon Slobodzian <joslobo@microsoft.com> - 1.6.3-4
+- Adding unpackaged file.
+
 * Wed Feb 01 2023 Sumedh Sharma <sumsharma@microsoft.com> - 1.6.3-3
 - Initial CBL-Mariner import from Fedora 38 (license: MIT)
 - Disable docs
