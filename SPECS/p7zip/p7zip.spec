@@ -1,7 +1,7 @@
 Summary:        Very high compression ratio file archiver
 Name:           p7zip
 Version:        16.02
-Release:        23%{?dist}
+Release:        24%{?dist}
 Vendor:         Microsoft Corporation
 Distribution:   Azure Linux
 # Files under C/Compress/Lzma/ are dual LGPL or CPL
@@ -38,12 +38,7 @@ BuildRequires:  gcc
 BuildRequires:  libstdc++
 BuildRequires:  libstdc++-devel
 BuildRequires:  cmake
-%ifarch %{ix86}
 BuildRequires:  nasm
-%endif
-%ifarch x86_64
-BuildRequires:  yasm
-%endif
 
 %description
 p7zip is a port of 7za.exe for Unix. 7-Zip is a file archiver with a very high
@@ -131,6 +126,9 @@ make test
 %doc contrib/
 
 %changelog
+* Thu Apr 25 2024 Jon Slobodzian <joslobo@microsoft.com> - 16.02-24
+- Remove Yasm dependency
+
 * Wed Sep 20 2023 Jon Slobodzian <joslobo@microsoft.com> - 16.02-23
 - Recompile with stack-protection fixed gcc version (CVE-2023-4039)
 
