@@ -2,7 +2,7 @@
     "Disks": [
         {
             "PartitionTableType": "gpt",
-            "MaxSize": 528,
+            "MaxSize": 1024,
             "Artifacts": [
                 {
                     "Name": "core",
