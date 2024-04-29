@@ -1,7 +1,7 @@
 Summary:        NFS client utils
 Name:           nfs-utils
 Version:        2.5.4
-Release:        4%{?dist}
+Release:        5%{?dist}
 License:        MIT and GPLv2 and GPLv2+ and BSD
 URL:            https://linux-nfs.org/
 Group:          Applications/Nfs-utils-client
@@ -90,15 +90,21 @@ sed -i 's/RPCGEN_PATH" =/rpcgen_path" =/' configure
 sed -i 's/-Werror=strict-prototypes/-Wno-error=strict-prototypes/' support/nsm/Makefile
 sed -i 's/CFLAGS = -g/CFLAGS = -Wno-error=strict-prototypes/' support/nsm/Makefile
 make %{?_smp_mflags}
+
 %install
 make DESTDIR=%{buildroot} install
 install -v -m644 utils/mount/nfsmount.conf /etc/nfsmount.conf
 
+mkdir -p %{buildroot}%{_sbindir}
 mkdir -p %{buildroot}/lib/systemd/system/
 mkdir -p %{buildroot}/etc/default
 mkdir -p %{buildroot}/etc/export.d
 mkdir -p %{buildroot}/var/lib/nfs/v4recovery
 touch %{buildroot}/etc/exports
+
+install -s -m 755 tools/rpcdebug/rpcdebug %{buildroot}%{_sbindir}
+install -m 644 nfs.conf %{buildroot}%{_sysconfdir}
+install -m 644 support/nfsidmap/idmapd.conf %{buildroot}%{_sysconfdir}
 
 install -m644 %{SOURCE1} %{buildroot}/lib/systemd/system/
 install -m644 %{SOURCE2} %{buildroot}/lib/systemd/system/
@@ -152,10 +158,12 @@ fi
 %{_sharedstatedir}/*
 %config(noreplace) /etc/default/nfs-utils
 %config(noreplace) /etc/exports
+%config(noreplace) %{_sysconfdir}/nfs.conf
 /lib/systemd/system/*
 %{_libdir}/systemd/system-preset/50-nfs-server.preset
 
 %files -n libnfsidmap
+%config(noreplace) %{_sysconfdir}/idmapd.conf
 %{_libdir}/libnfsidmap.so.*
 %{_libdir}/libnfsidmap/*.so
 
