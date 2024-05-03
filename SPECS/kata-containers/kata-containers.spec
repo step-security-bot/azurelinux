@@ -23,7 +23,7 @@
 
 # DEFAULT_HYPERVISOR: makes configuration.toml link to configuration-clh.toml.
 %global runtime_make_vars       KERNELTYPE="compressed" \\\
-                                KERNELPARAMS="systemd.legacy_systemd_cgroup_controller=yes systemd.unified_cgroup_hierarchy=0" \\\
+                                KERNELPARAMS="systemd.legacy_systemd_cgroup_controller=no systemd.unified_cgroup_hierarchy=1" \\\
                                 DEFVIRTIOFSDAEMON=%{_libexecdir}/"virtiofsd-rs" \\\
                                 DEFSTATICRESOURCEMGMT_CLH=true \\\
                                 DEFSTATICSANDBOXWORKLOADMEM=1792 \\\

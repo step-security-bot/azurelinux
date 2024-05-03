@@ -1,6 +1,7 @@
 %global virtiofsd_binary        virtiofsd-rs
 
-%global runtime_make_vars       DEFMEMSZ=256 \\\
+%global runtime_make_vars       KERNELPARAMS="systemd.legacy_systemd_cgroup_controller=no systemd.unified_cgroup_hierarchy=1" \\\
+                                DEFMEMSZ=256 \\\
                                 DEFSTATICSANDBOXWORKLOADMEM=1792 \\\
                                 DEFSNPGUEST=true \\\
                                 DEFVIRTIOFSDAEMON=%{_libexecdir}/"%{virtiofsd_binary}" \\\
