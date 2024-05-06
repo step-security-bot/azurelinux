@@ -20,6 +20,9 @@ popd
 cp ${SCRIPT_DIR}/agent/usr/lib/systemd/system/kata-containers.target  ${ROOTFS_DIR}/usr/lib/systemd/system/kata-containers.target
 cp ${SCRIPT_DIR}/agent/usr/lib/systemd/system/kata-agent.service   ${ROOTFS_DIR}/usr/lib/systemd/system/kata-agent.service
 
+# default to cgroup v2
+sed -i 's/systemd.legacy_systemd_cgroup_controller=yes systemd.unified_cgroup_hierarchy=0//g' ${ROOTFS_DIR}/boot/systemd.cfg
+
 # build initrd
 pushd ${OSBUILDER_DIR}
 sudo -E PATH=$PATH make DISTRO=cbl-mariner TARGET_ROOTFS=${ROOTFS_DIR} initrd

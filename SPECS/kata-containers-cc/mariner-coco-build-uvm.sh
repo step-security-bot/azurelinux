@@ -40,6 +40,9 @@ cp ${SCRIPT_DIR}/kata-containers.target  ${ROOTFS_DIR}/usr/lib/systemd/system/ka
 cp ${SCRIPT_DIR}/kata-agent.service.in   ${ROOTFS_DIR}/usr/lib/systemd/system/kata-agent.service
 sed -i 's/@BINDIR@\/@AGENT_NAME@/\/usr\/bin\/kata-agent/g'  ${ROOTFS_DIR}/usr/lib/systemd/system/kata-agent.service
 
+# default to cgroup v2
+sed -i 's/systemd.legacy_systemd_cgroup_controller=yes systemd.unified_cgroup_hierarchy=0//g' ${ROOTFS_DIR}/boot/systemd.cfg
+
 # build image
 pushd ${OSBUILDER_DIR}
 mv rootfs-builder/rootfs-cbl-mariner cbl-mariner_rootfs
