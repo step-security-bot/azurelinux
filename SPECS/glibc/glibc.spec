@@ -44,6 +44,10 @@ Patch19:        CVE-2023-4806-prepatch12.patch
 Patch20:        CVE-2023-4806.patch
 Patch21:        CVE-2023-5156.patch
 Patch22:        get_nscd_addresses_fix_subscript_typos.patch
+Patch23:        CVE-2024-33599.patch
+Patch24:        CVE-2024-33600.patch
+Patch25:        CVE-2024-33601.patch
+Patch26:        CVE-2024-33602.nopatch
 BuildRequires:  bison
 BuildRequires:  gawk
 BuildRequires:  gettext
@@ -339,6 +343,7 @@ grep "^FAIL: nptl/tst-eintr1" tests.sum >/dev/null && n=$((n+1)) ||:
 * Mon May 06 2024 Rachel Menge <rachelmenge@microsoft.com> - 2.35-7
 - Add prepatches for CVE-2023-4806 to split into original commits
 - Backport typo fix for nscd
+- patch CVE-2024-33599, CVE-2024-33600, CVE-2024-33601, CVE-2024-33602
 
 * Wed Oct 04 2023 Minghe Ren <mingheren@microsoft.com> - 2.35-6
 - Add patches for CVE-2023-4806 and CVE-2023-5156
