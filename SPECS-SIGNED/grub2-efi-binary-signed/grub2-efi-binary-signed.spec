@@ -79,8 +79,11 @@ cp %{SOURCE3} %{buildroot}/boot/efi/EFI/BOOT/%{grubpxeefiname}
 /boot/efi/EFI/BOOT/%{grubpxeefiname}
 
 %changelog
-* Tue Mar 26 2024 Gary Swalling <gaswal@microsoft.com> - 2.12-1
+* Tue May 07 2024 Gary Swalling <gaswal@microsoft.com> - 2.12-1
 - Match grub2 version and release numbers
+
+* Mon Apr 15 2024 Dan Streetman <ddstreet@microsoft.com> - 2.06-18
+- update grub to sbat 4
 
 * Wed Mar 20 2024 Cameron Baird <cameronbaird@microsoft.com> - 2.06-17
 - Bump release number to match grub release number

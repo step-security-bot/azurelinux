@@ -26,6 +26,7 @@ import (
 const (
 	configDirMountPathInChroot = "/_imageconfigs"
 	resolveConfPath            = "/etc/resolv.conf"
+	defaultFilePermissions     = 0o755
 )
 
 func doCustomizations(buildDir string, baseConfigPath string, config *imagecustomizerapi.Config,
@@ -35,9 +36,6 @@ func doCustomizations(buildDir string, baseConfigPath string, config *imagecusto
 
 	imageChroot := imageConnection.Chroot()
 
-	// Note: The ordering of the customization steps here should try to mirror the order of the equivalent steps in imager
-	// tool as closely as possible.
-
 	buildTime := time.Now().Format("2006-01-02T15:04:05Z")
 
 	err = overrideResolvConf(imageChroot)
@@ -45,13 +43,18 @@ func doCustomizations(buildDir string, baseConfigPath string, config *imagecusto
 		return err
 	}
 
-	err = addRemoveAndUpdatePackages(buildDir, baseConfigPath, &config.OS, imageChroot, rpmsSources,
-		useBaseImageRpmRepos, partitionsCustomized)
+	err = addRemoveAndUpdatePackages(buildDir, baseConfigPath, config.OS, imageChroot, rpmsSources,
+		useBaseImageRpmRepos)
 	if err != nil {
 		return err
 	}
 
-	err = updateHostname(config.OS.Hostname, imageChroot)
+	err = UpdateHostname(config.OS.Hostname, imageChroot)
+	if err != nil {
+		return err
+	}
+
+	err = copyAdditionalDirs(baseConfigPath, config.OS.AdditionalDirs, imageChroot)
 	if err != nil {
 		return err
 	}
@@ -81,23 +84,42 @@ func doCustomizations(buildDir string, baseConfigPath string, config *imagecusto
 		return err
 	}
 
-	err = runScripts(baseConfigPath, config.OS.PostInstallScripts, imageChroot)
-	if err != nil {
-		return err
-	}
-
 	err = handleBootLoader(baseConfigPath, config, imageConnection)
 	if err != nil {
 		return err
 	}
 
-	err = handleSELinux(config.OS.SELinux.Mode, config.OS.ResetBootLoaderType,
+	selinuxMode, err := handleSELinux(config.OS.SELinux.Mode, config.OS.ResetBootLoaderType,
 		imageChroot)
 	if err != nil {
 		return err
 	}
 
-	err = runScripts(baseConfigPath, config.OS.FinalizeImageScripts, imageChroot)
+	overlayUpdated, err := enableOverlays(config.OS.Overlays, imageChroot)
+	if err != nil {
+		return err
+	}
+
+	verityUpdated, err := enableVerityPartition(buildDir, config.OS.Verity, imageChroot)
+	if err != nil {
+		return err
+	}
+
+	if partitionsCustomized || overlayUpdated || verityUpdated {
+		err = regenerateInitrd(imageChroot)
+		if err != nil {
+			return err
+		}
+	}
+
+	if config.Scripts != nil {
+		err = runScripts(baseConfigPath, config.Scripts.PostCustomization, imageChroot)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = selinuxSetFiles(selinuxMode, imageChroot)
 	if err != nil {
 		return err
 	}
@@ -107,14 +129,11 @@ func doCustomizations(buildDir string, baseConfigPath string, config *imagecusto
 		return err
 	}
 
-	err = enableOverlays(config.OS.Overlays, imageChroot)
-	if err != nil {
-		return err
-	}
-
-	err = enableVerityPartition(buildDir, config.OS.Verity, imageChroot)
-	if err != nil {
-		return err
+	if config.Scripts != nil {
+		err = runScripts(baseConfigPath, config.Scripts.FinalizeCustomization, imageChroot)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -123,7 +142,7 @@ func doCustomizations(buildDir string, baseConfigPath string, config *imagecusto
 // Override the resolv.conf file, so that in-chroot processes can access the network.
 // For example, to install packages from packages.microsoft.com.
 func overrideResolvConf(imageChroot *safechroot.Chroot) error {
-	logger.Log.Debugf("Overriding resolv.conf file")
+	logger.Log.Infof("Overriding resolv.conf file")
 
 	imageResolveConfPath := filepath.Join(imageChroot.RootDir(), resolveConfPath)
 
@@ -147,7 +166,7 @@ func overrideResolvConf(imageChroot *safechroot.Chroot) error {
 // Note: It is assumed that the image will have a process that runs on boot that will override the resolv.conf
 // file. For example, systemd-resolved.
 func deleteResolvConf(imageChroot *safechroot.Chroot) error {
-	logger.Log.Debugf("Deleting overridden resolv.conf file")
+	logger.Log.Infof("Deleting overridden resolv.conf file")
 
 	imageResolveConfPath := filepath.Join(imageChroot.RootDir(), resolveConfPath)
 
@@ -159,7 +178,7 @@ func deleteResolvConf(imageChroot *safechroot.Chroot) error {
 	return err
 }
 
-func updateHostname(hostname string, imageChroot *safechroot.Chroot) error {
+func UpdateHostname(hostname string, imageChroot safechroot.ChrootInterface) error {
 	if hostname == "" {
 		return nil
 	}
@@ -194,6 +213,36 @@ func copyAdditionalFiles(baseConfigPath string, additionalFiles imagecustomizera
 		}
 	}
 
+	return nil
+}
+
+func copyAdditionalDirs(baseConfigPath string, additionalDirs imagecustomizerapi.DirConfigList, imageChroot *safechroot.Chroot) error {
+	for _, dirConfigElement := range additionalDirs {
+		absSourceDir := file.GetAbsPathWithBase(baseConfigPath, dirConfigElement.SourcePath)
+		logger.Log.Infof("Copying %s into %s", absSourceDir, dirConfigElement.DestinationPath)
+
+		// Setting permissions values. They are set to a default value if they have not been specified.
+		newDirPermissionsValue := fs.FileMode(defaultFilePermissions)
+		if dirConfigElement.NewDirPermissions != nil {
+			newDirPermissionsValue = *(*fs.FileMode)(dirConfigElement.NewDirPermissions)
+		}
+		childFilePermissionsValue := fs.FileMode(defaultFilePermissions)
+		if dirConfigElement.ChildFilePermissions != nil {
+			childFilePermissionsValue = *(*fs.FileMode)(dirConfigElement.ChildFilePermissions)
+		}
+
+		dirToCopy := safechroot.DirToCopy{
+			Src:                  absSourceDir,
+			Dest:                 dirConfigElement.DestinationPath,
+			NewDirPermissions:    newDirPermissionsValue,
+			ChildFilePermissions: childFilePermissionsValue,
+			MergedDirPermissions: (*fs.FileMode)(dirConfigElement.MergedDirPermissions),
+		}
+		err := imageChroot.AddDirs(dirToCopy)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -278,6 +327,10 @@ func addOrUpdateUser(user imagecustomizerapi.User, baseConfigPath string, imageC
 	}
 
 	if userExists {
+		if user.UID != nil {
+			return fmt.Errorf("cannot set UID (%d) on a user (%s) that already exists", *user.UID, user.Name)
+		}
+
 		// Update the user's password.
 		err = userutils.UpdateUserPassword(imageChroot.RootDir(), user.Name, hashedPassword)
 		if err != nil {
@@ -315,7 +368,8 @@ func addOrUpdateUser(user imagecustomizerapi.User, baseConfigPath string, imageC
 		user.SSHPublicKeyPaths[i] = file.GetAbsPathWithBase(baseConfigPath, user.SSHPublicKeyPaths[i])
 	}
 
-	err = installutils.ProvisionUserSSHCerts(imageChroot, user.Name, user.SSHPublicKeyPaths, user.SSHPublicKeys)
+	err = installutils.ProvisionUserSSHCerts(imageChroot, user.Name, user.SSHPublicKeyPaths, user.SSHPublicKeys,
+		userExists)
 	if err != nil {
 		return err
 	}
@@ -388,6 +442,11 @@ func handleBootLoader(baseConfigPath string, config *imagecustomizerapi.Config, 
 
 	switch config.OS.ResetBootLoaderType {
 	case imagecustomizerapi.ResetBootLoaderTypeHard:
+		logger.Log.Infof("Resetting bootloader config")
+
+		if config.Storage == nil {
+			return fmt.Errorf("failed to configure bootloader. Missing 'storage' configuration.")
+		}
 		// Hard-reset the grub config.
 		err := configureDiskBootLoader(imageConnection, config.Storage.FileSystems,
 			config.Storage.BootType, config.OS.SELinux, config.OS.KernelCommandLine, currentSelinuxMode)
@@ -408,14 +467,14 @@ func handleBootLoader(baseConfigPath string, config *imagecustomizerapi.Config, 
 
 func handleSELinux(selinuxMode imagecustomizerapi.SELinuxMode, resetBootLoaderType imagecustomizerapi.ResetBootLoaderType,
 	imageChroot *safechroot.Chroot,
-) error {
+) (imagecustomizerapi.SELinuxMode, error) {
 	var err error
 
 	// Resolve the default SELinux mode.
 	if selinuxMode == imagecustomizerapi.SELinuxModeDefault {
 		selinuxMode, err = getCurrentSELinuxMode(imageChroot)
 		if err != nil {
-			return err
+			return selinuxMode, err
 		}
 	}
 
@@ -428,21 +487,27 @@ func handleSELinux(selinuxMode imagecustomizerapi.SELinuxMode, resetBootLoaderTy
 		// Update the SELinux kernel command-line args.
 		err := updateSELinuxCommandLine(selinuxMode, imageChroot)
 		if err != nil {
-			return fmt.Errorf("failed to update SELinux args in grub.cfg:\n%w", err)
+			return selinuxMode, fmt.Errorf("failed to update SELinux args in grub.cfg:\n%w", err)
 		}
 	}
 
 	if selinuxMode != imagecustomizerapi.SELinuxModeDisabled {
 		err = updateSELinuxMode(selinuxMode, imageChroot)
 		if err != nil {
-			return err
+			return selinuxMode, err
 		}
 	}
 
-	return nil
+	return selinuxMode, nil
 }
 
 func updateSELinuxMode(selinuxMode imagecustomizerapi.SELinuxMode, imageChroot *safechroot.Chroot) error {
+	if selinuxMode == imagecustomizerapi.SELinuxModeDisabled {
+		// SELinux is disabled in the kernel command line.
+		// So, no need to update the SELinux config file.
+		return nil
+	}
+
 	imagerSELinuxMode, err := selinuxModeToImager(selinuxMode)
 	if err != nil {
 		return err
@@ -463,6 +528,23 @@ func updateSELinuxMode(selinuxMode imagecustomizerapi.SELinuxMode, imageChroot *
 			installutils.SELinuxConfigFile, configuration.SELinuxPolicyDefault)
 	}
 
+	err = installutils.SELinuxUpdateConfig(imagerSELinuxMode, imageChroot)
+	if err != nil {
+		return fmt.Errorf("failed to set SELinux mode in config file:\n%w", err)
+	}
+
+	return nil
+}
+
+func selinuxSetFiles(selinuxMode imagecustomizerapi.SELinuxMode, imageChroot *safechroot.Chroot) error {
+	if selinuxMode == imagecustomizerapi.SELinuxModeDisabled {
+		// SELinux is disabled in the kernel command line.
+		// So, no need to call setfiles.
+		return nil
+	}
+
+	logger.Log.Infof("Setting file SELinux labels")
+
 	// Get the list of mount points.
 	mountPointToFsTypeMap := make(map[string]string, 0)
 	for _, mountPoint := range imageChroot.GetMountPoints() {
@@ -476,9 +558,9 @@ func updateSELinuxMode(selinuxMode imagecustomizerapi.SELinuxMode, imageChroot *
 	}
 
 	// Set the SELinux config file and relabel all the files.
-	err = installutils.SELinuxConfigure(imagerSELinuxMode, imageChroot, mountPointToFsTypeMap, false)
+	err := installutils.SELinuxRelabelFiles(imageChroot, mountPointToFsTypeMap, false)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to set SELinux file labels:\n%w", err)
 	}
 
 	return nil

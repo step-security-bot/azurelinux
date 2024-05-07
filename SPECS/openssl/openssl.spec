@@ -9,7 +9,7 @@
 Summary: Utilities from the general purpose cryptography library with TLS implementation
 Name: openssl
 Version: 3.1.4
-Release: 5%{?dist}
+Release: 9%{?dist}
 Vendor:         Microsoft Corporation
 Distribution:   Azure Linux
 Source: https://www.openssl.org/source/openssl-%{version}.tar.gz
@@ -29,6 +29,8 @@ Patch3:   0003-Do-not-install-html-docs.patch
 Patch5:   0005-apps-ca-fix-md-option-help-text.patch
 # # Disable signature verification with totally unsafe hash algorithms
 Patch6:   0006-Disable-signature-verification-with-totally-unsafe-h.patch
+# # Add FIPS_mode() compatibility macro
+Patch8:   0008-Add-FIPS_mode-compatibility-macro.patch
 # # Add check to see if fips flag is enabled in kernel
 Patch9: 0009-Add-Kernel-FIPS-mode-flag-support.patch
 # # Add support for PROFILE=SYSTEM system default cipherlist
@@ -83,10 +85,15 @@ BuildRequires: perl(Text::Template)
 BuildRequires: sed
 
 %if 0%{?with_check}
+BuildRequires: perl(Math::BigInt)
+BuildRequires: perl(Test::Harness)
 BuildRequires: perl(Test::More)
 %endif
 
 Requires: %{name}-libs%{?_isa} = %{version}-%{release}
+
+Recommends: SymCrypt
+Recommends: SymCrypt-OpenSSL
 
 %description
 The OpenSSL toolkit provides support for secure communications between
@@ -352,10 +359,23 @@ install -m644 %{SOURCE9} \
 %ldconfig_scriptlets libs
 
 %changelog
+* Fri Apr 26 2024 Tobias Brick <tobiasb@microsoft.com> - 3.1.4-9
+- Add recommends on SymCrypt and SymCrypt-OpenSSL
+
+* Tue Apr 23 2024 Tobias Brick <tobiasb@microsoft.com> - 3.1.4-8
+- Add FIPS_mode patch back for compatibility
+
+* Tue Apr 16 2024 Tobias Brick <tobiasb@microsoft.com> - 3.1.4-7
+- Change config to load symcrypt provider if present
+
+* Wed Apr 03 2024 Tobias Brick <tobiasb@microsoft.com> - 3.1.4-6
+- Add check build requirements
+- Modify patch to not force load default provider
+
 * Wed Mar 20 2024 Chris Co <chrco@microsoft.com> - 3.1.4-5
 - Remove make-dummy-cert and renew-dummy-cert scripts
 
-* Thu Mar 13 2024 Tobias Brick <tobiasb@microsoft.com> - 3.1.4-4
+* Tue Mar 19 2024 Tobias Brick <tobiasb@microsoft.com> - 3.1.4-4
 - Remove runtime dependency on coreutils
 
 * Tue Mar 12 2024 Tobias Brick <tobiasb@microsoft.com> - 3.1.4-3

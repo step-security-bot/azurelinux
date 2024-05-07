@@ -428,8 +428,8 @@ build_rpm_in_chroot_no_install perl-generators
 chroot_and_install_rpms perl-generators
 
 # build and install additional openjdk build dependencies
-build_rpm_in_chroot_no_install pcre
-chroot_and_install_rpms pcre
+build_rpm_in_chroot_no_install pcre2
+chroot_and_install_rpms pcre2
 build_rpm_in_chroot_no_install which
 chroot_and_install_rpms which
 build_rpm_in_chroot_no_install zip
@@ -454,14 +454,14 @@ chroot_and_install_rpms python-setuptools python3-setuptools
 build_rpm_in_chroot_no_install libxml2
 chroot_and_install_rpms libxml2
 
-# Download JDK rpms (from Azure Linux 2.0 repo until it reaches AzuleLinux 3.0 repo on PMC)
+# Download JDK rpms
 echo Download JDK rpms
 case $(uname -m) in
     x86_64)
-        wget -nv --no-clobber --timeout=30 https://packages.microsoft.com/cbl-mariner/2.0/prod/Microsoft/x86_64/msopenjdk-17-17.0.9-1.x86_64.rpm --directory-prefix=$CHROOT_RPMS_DIR_ARCH
+        wget -nv --no-clobber --timeout=30 https://packages.microsoft.com/azurelinux/3.0/preview/ms-oss/x86_64/msopenjdk-17-17.0.11-1.x86_64.rpm --directory-prefix=$CHROOT_RPMS_DIR_ARCH
     ;;
     aarch64)
-        wget -nv --no-clobber --timeout=30 https://packages.microsoft.com/cbl-mariner/2.0/prod/Microsoft/aarch64/msopenjdk-17-17.0.9-1.aarch64.rpm --directory-prefix=$CHROOT_RPMS_DIR_ARCH
+        wget -nv --no-clobber --timeout=30 https://packages.microsoft.com/azurelinux/3.0/preview/ms-oss/aarch64/msopenjdk-17-17.0.11-1.aarch64.rpm --directory-prefix=$CHROOT_RPMS_DIR_ARCH
     ;;
 esac
 
@@ -571,9 +571,6 @@ chroot_and_install_rpms gtk-doc
 build_rpm_in_chroot_no_install libtasn1
 
 build_rpm_in_chroot_no_install libsepol
-# swig requires pcre2
-build_rpm_in_chroot_no_install pcre2
-chroot_and_install_rpms pcre2
 build_rpm_in_chroot_no_install swig
 
 # libselinux requires libsepol and swig

@@ -13,62 +13,37 @@ import (
 	"github.com/microsoft/azurelinux/toolkit/tools/imagecustomizerapi"
 	"github.com/microsoft/azurelinux/toolkit/tools/imagegen/diskutils"
 	"github.com/microsoft/azurelinux/toolkit/tools/internal/file"
+	"github.com/microsoft/azurelinux/toolkit/tools/internal/logger"
 	"github.com/microsoft/azurelinux/toolkit/tools/internal/safechroot"
-	"github.com/microsoft/azurelinux/toolkit/tools/internal/shell"
 )
 
-func enableVerityPartition(buildDir string, verity *imagecustomizerapi.Verity, imageChroot *safechroot.Chroot) error {
+func enableVerityPartition(buildDir string, verity *imagecustomizerapi.Verity, imageChroot *safechroot.Chroot,
+) (bool, error) {
 	var err error
 
 	if verity == nil {
-		return nil
+		return false, nil
 	}
+
+	logger.Log.Infof("Enable verity")
 
 	// Integrate systemd veritysetup dracut module into initramfs img.
 	systemdVerityDracutModule := "systemd-veritysetup"
 	dmVerityDracutDriver := "dm-verity"
-	err = buildDracutModule(systemdVerityDracutModule, dmVerityDracutDriver, imageChroot)
+	err = addDracutModule(systemdVerityDracutModule, dmVerityDracutDriver, imageChroot)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	err = updateFstabForVerity(buildDir, imageChroot)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return nil
+	return true, nil
 }
 
-func buildDracutModule(dracutModuleName string, dracutDriverName string, imageChroot *safechroot.Chroot) error {
-	var err error
-
-	listKernels := func() ([]string, error) {
-		var kernels []string
-		// Use RootDir to get the path on the host OS
-		bootDir := filepath.Join(imageChroot.RootDir(), "boot")
-		files, err := filepath.Glob(filepath.Join(bootDir, "vmlinuz-*"))
-		if err != nil {
-			return nil, err
-		}
-		for _, file := range files {
-			kernels = append(kernels, filepath.Base(file))
-		}
-		return kernels, nil
-	}
-
-	kernelFiles, err := listKernels()
-	if err != nil {
-		return fmt.Errorf("failed to list kernels: %w", err)
-	}
-
-	if len(kernelFiles) != 1 {
-		return fmt.Errorf("expected one kernel file, but found %d", len(kernelFiles))
-	}
-
-	// Extract the version from the kernel filename (e.g., vmlinuz-5.15.131.1-2.cm2 -> 5.15.131.1-2.cm2)
-	kernelVersion := strings.TrimPrefix(kernelFiles[0], "vmlinuz-")
-
+func addDracutModule(dracutModuleName string, dracutDriverName string, imageChroot *safechroot.Chroot) error {
 	dracutConfigFile := filepath.Join(imageChroot.RootDir(), "etc", "dracut.conf.d", dracutModuleName+".conf")
 
 	// Check if the dracut module configuration file already exists.
@@ -82,15 +57,6 @@ func buildDracutModule(dracutModuleName string, dracutDriverName string, imageCh
 		if err != nil {
 			return fmt.Errorf("failed to write to dracut module config file (%s): %w", dracutConfigFile, err)
 		}
-	}
-
-	err = imageChroot.Run(func() error {
-		initrdImagePath := "/boot/initrd.img-" + kernelVersion
-		err = shell.ExecuteLiveWithErr(1, "mkinitrd", "-f", initrdImagePath, kernelVersion)
-		return err
-	})
-	if err != nil {
-		return fmt.Errorf("failed to build initrd img for kernel - (%s):\n%w", kernelVersion, err)
 	}
 
 	return nil
@@ -125,7 +91,8 @@ func updateFstabForVerity(buildDir string, imageChroot *safechroot.Chroot) error
 }
 
 func updateGrubConfig(dataPartitionIdType imagecustomizerapi.IdType, dataPartitionId string,
-	hashPartitionIdType imagecustomizerapi.IdType, hashPartitionId string, rootHash string, grubCfgFullPath string,
+	hashPartitionIdType imagecustomizerapi.IdType, hashPartitionId string,
+	corruptionOption imagecustomizerapi.CorruptionOption, rootHash string, grubCfgFullPath string,
 ) error {
 	var err error
 
@@ -139,9 +106,14 @@ func updateGrubConfig(dataPartitionIdType imagecustomizerapi.IdType, dataPartiti
 		return err
 	}
 
+	formattedCorruptionOption, err := systemdFormatCorruptionOption(corruptionOption)
+	if err != nil {
+		return err
+	}
+
 	newArgs := fmt.Sprintf(
-		"rd.systemd.verity=1 roothash=%s systemd.verity_root_data=%s systemd.verity_root_hash=%s systemd.verity_root_options=panic-on-corruption",
-		rootHash, formattedDataPartition, formattedHashPartition,
+		"rd.systemd.verity=1 roothash=%s systemd.verity_root_data=%s systemd.verity_root_hash=%s systemd.verity_root_options=%s",
+		rootHash, formattedDataPartition, formattedHashPartition, formattedCorruptionOption,
 	)
 
 	// Read grub.cfg using the internal method
@@ -221,6 +193,21 @@ func systemdFormatPartitionId(idType imagecustomizerapi.IdType, id string) (stri
 		return fmt.Sprintf("%s=%s", "PARTUUID", id), nil
 	default:
 		return "", fmt.Errorf("invalid idType provided (%s)", string(idType))
+	}
+}
+
+func systemdFormatCorruptionOption(corruptionOption imagecustomizerapi.CorruptionOption) (string, error) {
+	switch corruptionOption {
+	case imagecustomizerapi.CorruptionOptionDefault, imagecustomizerapi.CorruptionOptionIoError:
+		return "", nil
+	case imagecustomizerapi.CorruptionOptionIgnore:
+		return "ignore-corruption", nil
+	case imagecustomizerapi.CorruptionOptionPanic:
+		return "panic-on-corruption", nil
+	case imagecustomizerapi.CorruptionOptionRestart:
+		return "restart-on-corruption", nil
+	default:
+		return "", fmt.Errorf("invalid corruptionOption provided (%s)", string(corruptionOption))
 	}
 }
 

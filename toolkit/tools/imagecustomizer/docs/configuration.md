@@ -24,16 +24,16 @@ The Azure Linux Image Customizer is configured using a YAML (or JSON) file.
 4. Update hostname. ([hostname](#hostname-string))
 
 5. Copy additional files. ([additionalFiles](#additionalfiles-mapstring-fileconfig))
+  
+6. Copy additional directories. ([additionalDirs](#additionaldirs-dirconfig))
 
-6. Add/update users. ([users](#users-user))
+7. Add/update users. ([users](#users-user))
 
-7. Enable/disable services. ([services](#services-type))
+8. Enable/disable services. ([services](#services-type))
 
-8. Configure kernel modules. ([modules](#modules-module))
+9. Configure kernel modules. ([modules](#modules-module))
 
-9. Write the `/etc/mariner-customizer-release` file.
-
-10. Run post-install scripts. ([postInstallScripts](#postinstallscripts-script))
+10. Write the `/etc/mariner-customizer-release` file.
 
 11. If [resetBootLoaderType](#resetbootloadertype-string) is set to `hard-reset`, then
     reset the boot-loader.
@@ -42,17 +42,31 @@ The Azure Linux Image Customizer is configured using a YAML (or JSON) file.
     append the [extraCommandLine](#extracommandline-string) value to the existing
     `grub.cfg` file.
 
-12. Change SELinux mode and, if SELinux is enabled, call `setfiles`.
+12. Update the SELinux mode. [mode](#mode-string)
 
-13. Run finalize image scripts. ([finalizeImageScripts](#finalizeimagescripts-script))
+13. If ([overlays](#overlay-type)) are specified, then add the overlays dracut module
+    and update the grub config.
 
-14. Delete `/etc/resolv.conf` file.
+14. If ([verity](#verity-type)) is specified, then add the dm-verity dracut driver
+    and update the grub config.
 
-15. Enable overlay filesystem. ([overlay](#overlay-type))
+15. Regenerate the initramfs file (if needed).
 
-16. Enable dm-verity root protection. ([verity](#verity-type))
+16. Run ([postCustomization](#postcustomization-script)) scripts.
 
-17. if the output format is set to `iso`, copy additional iso media files.
+17. If SELinux is enabled, call `setfiles`.
+
+18. Delete `/etc/resolv.conf` file.
+
+19. Run finalize image scripts. ([finalizeCustomization](#finalizecustomization-script))
+
+20. If [--shrink-filesystems](./cli.md#shrink-filesystems) is specified, then shrink
+    the file systems.
+
+21. If ([verity](#verity-type)) is specified, then create the hash tree and update the
+    grub config.
+
+22. if the output format is set to `iso`, copy additional iso media files.
 ([iso](#iso-type))
 
 ### /etc/resolv.conf
@@ -99,7 +113,7 @@ os:
             - [start](#start-uint64)
             - [end](#end-uint64)
             - [size](#size-uint64)
-            - [flag](#flags-string)
+            - [type](#partition-type-string)
     - [fileSystems](#filesystems-filesystem)
       - [fileSystem type](#filesystem-type)
         - [deviceId](#deviceid-string)
@@ -114,6 +128,8 @@ os:
       - [fileConfig type](#fileconfig-type)
         - [path](#fileconfig-path)
         - [permissions](#permissions-string)
+    - [kernelCommandLine](#kernelcommandline-type)
+      - [extraCommandLine](#extracommandline-string)
   - [os type](#os-type)
     - [resetBootLoaderType](#resetbootloadertype-string)
     - [hostname](#hostname-string)
@@ -136,14 +152,13 @@ os:
       - [fileConfig type](#fileconfig-type)
         - [path](#fileconfig-path)
         - [permissions](#permissions-string)
-    - [postInstallScripts](#postinstallscripts-script)
-      - [script type](#script-type)
-        - [path](#script-path)
-        - [args](#args-string)
-    - [finalizeImageScripts](#finalizeimagescripts-script)
-      - [script type](#script-type)
-        - [path](#script-path)
-        - [args](#args-string)
+    - [additionalDirs](#additionaldirs-dirconfig)
+      - [dirConfig](#dirconfig-type)
+        - [sourcePath](#dirconfig-sourcePath)
+        - [destinationPath](#dirconfig-destinationPath)
+        - [newDirPermissions](#newdirpermissions-string)
+        - [mergedDirPermissions](#mergeddirpermissions-string)
+        - [childFilePermissions](#childfilepermissions-string)
     - [users](#users-user)
       - [user type](#user-type)
         - [name](#user-name)
@@ -156,16 +171,27 @@ os:
         - [primaryGroup](#primarygroup-string)
         - [secondaryGroups](#secondarygroups-string)
         - [startupCommand](#startupcommand-string)
+    - [selinux](#selinux-type)
+      - [mode](#mode-string)
     - [services](#services-type)
       - [enable](#enable-string)
       - [disable](#disable-string)
     - [modules](#modules-module)
       - [module type](#module-type)
         - [name](#module-name)
-        - [loadMode](#loadMode-string)
+        - [loadMode](#loadmode-string)
         - [options](#options-mapstring-string)
     - [overlay type](#overlay-type)
     - [verity type](#verity-type)
+  - [scripts type](#scripts-type)
+    - [postCustomization](#postcustomization-script)
+      - [script type](#script-type)
+        - [path](#script-path)
+        - [args](#args-string)
+    - [finalizeCustomization](#finalizecustomization-script)
+      - [script type](#script-type)
+        - [path](#script-path)
+        - [args](#args-string)
 
 ## Top-level
 
@@ -188,17 +214,15 @@ storage:
 
   disks:
   - partitionTableType: gpt
-    maxSize: 4096
+    maxSize: 4096M
     partitions:
     - id: esp
-      flags:
-      - esp
-      - boot
-      start: 1
-      end: 9
+      type: esp
+      start: 1M
+      end: 9M
 
     - id: rootfs
-      start: 9
+      start: 9M
       
   fileSystems:
   - deviceId: esp
@@ -241,7 +265,12 @@ Supported options:
 
 ### maxSize [uint64]
 
-The size of the disk, specified in mebibytes (MiB).
+The size of the disk.
+
+Supported format: `<NUM>(K|M|G|T)`: A size in KiB (`K`), MiB (`M`), GiB (`G`), or TiB
+(`T`).
+
+Must be a multiple of 1 MiB.
 
 ### partitions [[partition](#partition-type)[]]
 
@@ -299,7 +328,7 @@ os:
       workDir: /work_etc
       partition:
         idType: part-label
-        Id: partition-etc
+        id: partition-etc
     - lowerDir: /var/lib
       upperDir: /upper_var_lib
       workDir: /work_var_lib
@@ -330,6 +359,14 @@ please refer to the [overlay type](#overlay-type) section.
 - `hashPartition`: A partition used exclusively for storing a calculated hash
   tree.
 
+- `corruptionOption`: Optional. Specifies the behavior in case of detected
+  corruption. This is configurable with the following options:
+  - `io-error`: Default setting. Fails the I/O operation with an I/O error.
+  - `ignore`: ignores the corruption and continues operation.
+  - `panic`: causes the system to panic (print errors) and then try restarting
+    if corruption is detected.
+  - `restart`: attempts to restart the system upon detecting corruption.
+
 Example:
 
 ```yaml
@@ -341,6 +378,7 @@ os:
     hashPartition:
       idType: part-label
       Id: hash_partition
+    corruptionOption: panic
 ```
 
 ## fileConfig type
@@ -380,6 +418,65 @@ os:
     files/a.txt:
     - path: /a.txt
       permissions: "664"
+```
+
+## dirConfig type
+
+Specifies options for placing a directory in the OS.
+
+Type is used by: [additionalDirs](#additionaldirs-dirconfig)
+
+<div id="dirconfig-sourcePath"></div>
+
+### sourcePath [string]
+
+The absolute path to the source directory that will be copied.
+
+<div id="dirconfig-destinationPath"></div>
+
+### destinationPath [string]
+
+The absolute path in the target OS that the source directory will be copied to.
+
+Example:
+
+```yaml
+os:
+  additionalDirs:
+    - sourcePath: "home/files/targetDir"
+      destinationPath: "usr/project/targetDir"
+```
+
+### newDirPermissions [string]
+
+The permissions to set on all of the new directories being created on the target OS
+(including the top-level directory). Default value: `755`.
+
+### mergedDirPermissions [string]
+
+The permissions to set on the directories being copied that already do exist on the
+target OS (including the top-level directory). **Note:** If this value is not specified
+in the config, the permissions for this field will be the same as that of the
+pre-existing directory.
+
+### childFilePermissions [string]
+
+The permissions to set on the children file of the directory. Default value: `755`.
+
+Supported formats for permission values:
+
+- String containing an octal value. e.g. `664`
+
+Example:
+
+```yaml
+os:
+  additionalDirs:
+    - sourcePath: "home/files/targetDir"
+      destinationPath: "usr/project/targetDir"
+      newDirPermissions: "644"
+      mergedDirPermissions: "777"
+      childFilePermissions: "644"
 ```
 
 ## fileSystem type
@@ -422,64 +519,6 @@ If [resetBootLoaderType](#resetbootloadertype-string) is set to `"hard-reset"`, 
 
 If [resetBootLoaderType](#resetbootloadertype-string) is not set, then the
 `extraCommandLine` value will be appended to the existing `grub.cfg` file.
-
-### selinuxMode
-
-Specifies the mode to set SELinux to.
-
-If this field is not specified, then the existing SELinux mode in the base image is
-maintained.
-Otherwise, the image is modified to match the requested SELinux mode.
-
-The Azure Linux Image Customizer tool can enable SELinux on a base image with SELinux
-disabled and it can disable SELinux on a base image that has SELinux enabled.
-However, using a base image that already has the required SELinux mode will speed-up the
-customization process.
-
-If SELinux is enabled, then all the file-systems that support SELinux will have their
-file labels updated/reset (using the `setfiles` command).
-
-Supported options:
-
-- `disabled`: Disables SELinux.
-
-- `permissive`: Enables SELinux but only logs access rule violations.
-
-- `enforcing`: Enables SELinux and enforces all the access rules.
-
-- `force-enforcing`: Enables SELinux and sets it to enforcing in the kernel
-  command-line.
-  This means that SELinux can't be set to `permissive` using the `/etc/selinux/config`
-  file.
-
-Note: For images with SELinux enabled, the `selinux-policy` package must be installed.
-This package contains the default SELinux rules and is required for SELinux-enabled
-images to be functional.
-The Azure Linux Image Customizer tool will report an error if the package is missing from
-the image.
-
-Note: If you wish to apply additional SELinux policies on top of the base SELinux
-policy, then it is recommended to apply these new policies using
-([postInstallScripts](#postinstallscripts-script)).
-After applying the policies, you do not need to call `setfiles` manually since it will
-called automatically after the `postInstallScripts` are run.
-
-Example:
-
-```yaml
-os:
-  kernelCommandLine:
-    selinuxMode: enforcing
-
-  packagesInstall:
-  # Required packages for SELinux.
-  - selinux-policy
-  - selinux-policy-modules
-  
-  # Optional packages that contain useful SELinux utilities.
-  - setools-console
-  - policycoreutils-python-utils
-```
 
 ## module type
 
@@ -694,24 +733,45 @@ The label to assign to the partition.
 
 Required.
 
-The start location (inclusive) of the partition, specified in MiBs.
+The start location (inclusive) of the partition.
+
+Supported format: `<NUM>(K|M|G|T)`: A size in KiB (`K`), MiB (`M`), GiB (`G`), or TiB
+(`T`).
+
+Must be a multiple of 1 MiB.
 
 ### end [uint64]
 
-The end location (exclusive) of the partition, specified in MiBs.
+The end location (exclusive) of the partition.
 
-The End and Size fields cannot be specified at the same time.
+The `end` and `size` fields cannot be specified at the same time.
 
-Either the Size or End field is required for all partitions except for the last
+Either the `size` or `end` field is required for all partitions except for the last
 partition.
-When both the Size and End fields are omitted, the last partition will fill the
-remainder of the disk (based on the disk's [maxSize](#maxsize-uint64) field).
+When both the `size` and `end` fields are omitted or when the `size` field is set to the
+value `grow`, the last partition will fill the remainder of the disk based on the disk's
+[maxSize](#maxsize-uint64) field.
+
+Supported format: `<NUM>(K|M|G|T)`: A size in KiB (`K`), MiB (`M`), GiB (`G`), or TiB
+(`T`).
+
+Must be a multiple of 1 MiB.
 
 ### size [uint64]
 
-The size of the partition, specified in MiBs.
+The size of the partition.
 
-### flags [string[]]
+Supported formats:
+
+- `<NUM>(K|M|G|T)`: An explicit size in KiB (`K`), MiB (`M`), GiB (`G`), or TiB (`T`).
+
+- `grow`: Fill up the remainder of the disk. Must be the last partition.
+
+Must be a multiple of 1 MiB.
+
+<div id="partition-type-string"></div>
+
+### type [string]
 
 Specifies options for the partition.
 
@@ -719,8 +779,6 @@ Supported options:
 
 - `esp`: The UEFI System Partition (ESP).
   The partition must have a `fileSystemType` of `fat32`.
-
-  When specified on a GPT formatted disk, the `boot` flag must also be added.
 
 - `bios-grub`: Specifies this partition is the BIOS boot partition.
   This is required for GPT disks that wish to be bootable using legacy BIOS mode.
@@ -730,13 +788,6 @@ Supported options:
   This flag is only supported on GPT formatted disks.
 
   For further details, see: https://en.wikipedia.org/wiki/BIOS_boot_partition
-
-- `boot`: Specifies that this partition contains the boot loader.
-
-  When specified on a GPT formatted disk, the `esp` flag must also be added.
-
-These options mirror those in
-[parted](https://www.gnu.org/software/parted/manual/html_node/set.html).
 
 ## mountPoint type
 
@@ -790,8 +841,8 @@ in.
 Example:
 
 ```yaml
-os:
-  postInstallScripts:
+scripts:
+  postCustomization:
   - path: scripts/a.sh
 ```
 
@@ -802,10 +853,57 @@ Additional arguments to pass to the script.
 Example:
 
 ```yaml
-os:
-  postInstallScripts:
+scripts:
+  postCustomization:
   - path: scripts/a.sh
     args: abc
+```
+
+## scripts type
+
+Note: Script files must be in the same directory or a child directory of the directory
+that contains the config file.
+
+### postCustomization [[script](#script-type)[]]
+
+Scripts to run after all the in-built customization steps have run.
+
+These scripts are run under a chroot of the customized OS.
+
+Example:
+
+```yaml
+scripts:
+  postCustomization:
+  - path: scripts/a.sh
+```
+
+### finalizeCustomization [[script](#script-type)[]]
+
+Scripts to run at the end of the customization process.
+
+In particular, these scripts run after:
+
+1. The `setfiles` command has been called to update/fix the SELinux files labels (if
+   SELinux is enabled), and
+
+2. The temporary `/etc/resolv.conf` file has been deleted,
+
+but before the conversion to the requested output type.
+(See, [Operation ordering](#operation-ordering) for details.)
+
+Most scripts should be added to [postCustomization](#postcustomization-script).
+Only add scripts to [finalizeCustomization](#finalizecustomization-script) if you want
+to customize the `/etc/resolv.conf` file or you want manually set SELinux file labels.
+
+These scripts are run under a chroot of the customized OS.
+
+Example:
+
+```yaml
+os:
+  finalizeCustomization:
+  - path: scripts/b.sh
 ```
 
 ## services type
@@ -910,38 +1008,26 @@ os:
       permissions: "664"
 ```
 
-### postInstallScripts [[script](#script-type)[]]
+### additionalDirs [[dirConfig](#dirconfig-type)[]]
 
-Scripts to run against the image after the packages have been added and removed.
+Copy directories into the OS image.
 
-These scripts are run under a chroot of the customized OS.
-
-Note: Scripts must be in the same directory or a child directory of the directory
-that contains the config file.
+This property is a list of [dirConfig](#dirconfig-type) objects.
 
 Example:
 
 ```yaml
 os:
-  postInstallScripts:
-  - path: scripts/a.sh
-```
-
-### finalizeImageScripts [[script](#script-type)[]]
-
-Scripts to run against the image just before the image is finalized.
-
-These scripts are run under a chroot of the customized OS.
-
-Note: Scripts must be in the same directory or a child directory of the directory
-that contains the config file.
-
-Example:
-
-```yaml
-os:
-  finalizeImageScripts:
-  - path: scripts/a.sh
+  additionalDirs:
+    # Copying directory with default permission options.
+    - sourcePath: "path/to/local/directory/"
+      destinationPath: "/path/to/destination/directory/"
+    # Copying directory with specific permission options.
+    - sourcePath: "path/to/local/directory/"
+      destinationPath: "/path/to/destination/directory/"
+      newDirPermissions: 0644
+      mergedDirPermissions: 0777
+      childFilePermissions: 0644
 ```
 
 ### users [[user](#user-type)]
@@ -968,6 +1054,17 @@ os:
     - name: vfio
 ```
 
+### selinux [[selinux](#selinux-type)]
+
+Options for configuring SELinux.
+
+Example:
+
+```yaml
+os:
+  selinux:
+    mode: permissive
+```
 
 ### services [[services](#services-type)]
 
@@ -1142,6 +1239,67 @@ os:
   users:
   - name: test
     startupCommand: /sbin/nologin
+```
+
+## selinux type
+
+### mode [string]
+
+Specifies the mode to set SELinux to.
+
+If this field is not specified, then the existing SELinux mode in the base image is
+maintained.
+Otherwise, the image is modified to match the requested SELinux mode.
+
+The Azure Linux Image Customizer tool can enable SELinux on a base image with SELinux
+disabled and it can disable SELinux on a base image that has SELinux enabled.
+However, using a base image that already has the required SELinux mode will speed-up the
+customization process.
+
+If SELinux is enabled, then all the file-systems that support SELinux will have their
+file labels updated/reset (using the `setfiles` command).
+
+Supported options:
+
+- `disabled`: Disables SELinux.
+
+- `permissive`: Enables SELinux but only logs access rule violations.
+
+- `enforcing`: Enables SELinux and enforces all the access rules.
+
+- `force-enforcing`: Enables SELinux and sets it to enforcing in the kernel
+  command-line.
+  This means that SELinux can't be set to `permissive` using the `/etc/selinux/config`
+  file.
+
+Note: For images with SELinux enabled, the `selinux-policy` package must be installed.
+This package contains the default SELinux rules and is required for SELinux-enabled
+images to be functional.
+The Azure Linux Image Customizer tool will report an error if the package is missing from
+the image.
+
+Note: If you wish to apply additional SELinux policies on top of the base SELinux
+policy, then it is recommended to apply these new policies using a
+([postCustomization](#postcustomization-script)) script.
+After applying the policies, you do not need to call `setfiles` manually since it will
+called automatically after the `postCustomization` scripts are run.
+
+Example:
+
+```yaml
+os:
+  selinux:
+    mode: enforcing
+
+  packages:
+    install:
+    # Required packages for SELinux.
+    - selinux-policy
+    - selinux-policy-modules
+    
+    # Optional packages that contain useful SELinux utilities.
+    - setools-console
+    - policycoreutils-python-utils
 ```
 
 ## storage type

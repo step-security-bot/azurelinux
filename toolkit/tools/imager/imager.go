@@ -37,6 +37,7 @@ var (
 	liveInstallFlag = app.Flag("live-install", "Enable to perform a live install to the disk specified in config file.").Bool()
 	emitProgress    = app.Flag("emit-progress", "Write progress updates to stdout, such as percent complete and current action.").Bool()
 	timestampFile   = app.Flag("timestamp-file", "File that stores timestamps for this program.").String()
+	buildNumber     = app.Flag("build-number", "Build number to be used in the image.").String()
 	logFlags        = exe.SetupLogFlags(app)
 	profFlags       = exe.SetupProfileFlags(app)
 )
@@ -372,7 +373,8 @@ func setupDisk(outputDir, diskName string, liveInstallFlag bool, diskConfig conf
 	if diskConfig.TargetDisk.Type == realDiskType {
 		if liveInstallFlag {
 			diskDevPath = diskConfig.TargetDisk.Value
-			partIDToDevPathMap, partIDToFsTypeMap, encryptedRoot, readOnlyRoot, err = setupRealDisk(diskDevPath, diskConfig, rootEncryption, readOnlyRootConfig)
+			partIDToDevPathMap, partIDToFsTypeMap, encryptedRoot, readOnlyRoot, err = setupRealDisk(diskDevPath,
+				diskConfig, rootEncryption, readOnlyRootConfig, false /*diskKnownToBeEmpty*/)
 		} else {
 			err = fmt.Errorf("target Disk Type is set but --live-install option is not set. Please check your config or enable the --live-install option")
 			return
@@ -408,7 +410,8 @@ func setupLoopDeviceDisk(outputDir, diskName string, diskConfig configuration.Di
 		return
 	}
 
-	partIDToDevPathMap, partIDToFsTypeMap, encryptedRoot, readOnlyRoot, err = setupRealDisk(diskDevPath, diskConfig, rootEncryption, readOnlyRootConfig)
+	partIDToDevPathMap, partIDToFsTypeMap, encryptedRoot, readOnlyRoot, err = setupRealDisk(diskDevPath, diskConfig,
+		rootEncryption, readOnlyRootConfig, true /*diskKnownToBeEmpty*/)
 	if err != nil {
 		err = fmt.Errorf("failed to setup loopback disk partitions (%s):\n%w", rawDisk, err)
 		return
@@ -417,9 +420,12 @@ func setupLoopDeviceDisk(outputDir, diskName string, diskConfig configuration.Di
 	return
 }
 
-func setupRealDisk(diskDevPath string, diskConfig configuration.Disk, rootEncryption configuration.RootEncryption, readOnlyRootConfig configuration.ReadOnlyVerityRoot) (partIDToDevPathMap, partIDToFsTypeMap map[string]string, encryptedRoot diskutils.EncryptedRootDevice, readOnlyRoot diskutils.VerityDevice, err error) {
+func setupRealDisk(diskDevPath string, diskConfig configuration.Disk, rootEncryption configuration.RootEncryption,
+	readOnlyRootConfig configuration.ReadOnlyVerityRoot, diskKnownToBeEmpty bool,
+) (partIDToDevPathMap, partIDToFsTypeMap map[string]string, encryptedRoot diskutils.EncryptedRootDevice, readOnlyRoot diskutils.VerityDevice, err error) {
 	// Set up partitions
-	partIDToDevPathMap, partIDToFsTypeMap, encryptedRoot, readOnlyRoot, err = diskutils.CreatePartitions(diskDevPath, diskConfig, rootEncryption, readOnlyRootConfig)
+	partIDToDevPathMap, partIDToFsTypeMap, encryptedRoot, readOnlyRoot, err = diskutils.CreatePartitions(diskDevPath,
+		diskConfig, rootEncryption, readOnlyRootConfig, diskKnownToBeEmpty)
 	if err != nil {
 		err = fmt.Errorf("failed to create partitions on disk (%s):\n%w", diskDevPath, err)
 		return
@@ -598,6 +604,8 @@ func buildImage(mountPointMap, mountPointToFsTypeMap, mountPointToMountArgsMap, 
 		err = fmt.Errorf("failed to populate image contents:\n%w", err)
 		return
 	}
+
+	err = installutils.AddImageIDFile(installChroot.RootDir(), *buildNumber)
 
 	// Only configure the bootloader or read only partitions for actual disks, a rootfs does not need these
 	if !systemConfig.IsRootFS() {

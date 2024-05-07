@@ -27,6 +27,7 @@ set -e
 # - s) SBOM tool path.
 # - t) Script to create SBOM for the container image.
 # - u) Create Distroless container (e.g. true, false. If true, the script will also create a distroless container)
+# - v) Version extract command (e.g. 'busybox | head -1 | cut -c 10-15')
 
 # Assuming you are in your current working directory. Below should be the directory structure:
 #   │   rpms.tar.gz
@@ -55,7 +56,7 @@ set -e
 #     -j OUTPUT -k ./rpms.tar.gz -l ~/azurelinux/.pipelines/containerSourceData \
 #     -m "false" -n "false" -p development -q "false" -u "true"
 
-while getopts ":a:b:c:d:e:f:g:h:i:j:k:l:m:n:o:p:q:r:s:t:u:" OPTIONS; do
+while getopts ":a:b:c:d:e:f:g:h:i:j:k:l:m:n:o:p:q:r:s:t:u:v:" OPTIONS; do
     case ${OPTIONS} in
     a ) BASE_IMAGE_NAME_FULL=$OPTARG;;
     b ) ACR=$OPTARG;;
@@ -78,6 +79,7 @@ while getopts ":a:b:c:d:e:f:g:h:i:j:k:l:m:n:o:p:q:r:s:t:u:" OPTIONS; do
     s ) SBOM_TOOL_PATH=$OPTARG;;
     t ) SBOM_SCRIPT=$OPTARG;;
     u ) DISTROLESS=$OPTARG;;
+    v ) VERSION_EXTRACT_CMD=$OPTARG;;
 
     \? )
         echo "Error - Invalid Option: -$OPTARG" 1>&2
@@ -113,6 +115,7 @@ function print_inputs {
     echo "CONTAINER_SRC_DIR             -> $CONTAINER_SRC_DIR"
     echo "IS_HCI_IMAGE                  -> $IS_HCI_IMAGE"
     echo "USE_RPM_QA_CMD                -> $USE_RPM_QA_CMD"
+    echo "VERSION_EXTRACT_CMD           -> $VERSION_EXTRACT_CMD"
     echo "REPO_PREFIX                   -> $REPO_PREFIX"
     echo "PUBLISHING_LEVEL              -> $PUBLISHING_LEVEL"
     echo "PUBLISH_TO_ACR                -> $PUBLISH_TO_ACR"
@@ -197,12 +200,14 @@ function initialization {
     BASE_IMAGE_TAG=${BASE_IMAGE_NAME_FULL#*:}   # 3.0
     AZURE_LINUX_VERSION=${BASE_IMAGE_TAG%.*}    # 3.0
     DISTRO_IDENTIFIER="azl"
+    END_OF_LIFE_1_YEAR=$(date -d "+1 year" "+%Y-%m-%dT%H:%M:%SZ")
 
     echo "Golden Image Name             -> $GOLDEN_IMAGE_NAME"
     echo "Base ACR Container Name       -> $BASE_IMAGE_NAME"
     echo "Base ACR Container Tag        -> $BASE_IMAGE_TAG"
     echo "Azure Linux Version           -> $AZURE_LINUX_VERSION"
     echo "Distro Identifier             -> $DISTRO_IDENTIFIER"
+    echo "End of Life                   -> $END_OF_LIFE_1_YEAR"
 }
 
 function prepare_dockerfile {
@@ -273,21 +278,26 @@ function set_image_tag {
     local containerId
     local installedPackage
 
-    containerId=$(docker run --entrypoint /bin/bash -dt "$GOLDEN_IMAGE_NAME")
+    containerId=$(docker run --entrypoint /bin/sh -dt "$GOLDEN_IMAGE_NAME")
 
     echo "Container ID                  -> $containerId"
 
-    if [[ $USE_RPM_QA_CMD =~ [Tt]rue ]] ; then
-        echo "Using rpm -qa command to get installed package."
-        installedPackage=$(docker exec "$containerId" rpm -qa | grep ^"$COMPONENT")
+    if [[ -n "$VERSION_EXTRACT_CMD" ]]; then
+        echo "Using custom version extract command."
+        COMPONENT_VERSION=$(docker exec "$containerId" sh -c "$VERSION_EXTRACT_CMD")
     else
-        echo "Using tdnf repoquery command to get installed package."
-        # exec as root as the default user for some containers is non-root
-        installedPackage=$(docker exec -u 0 "$containerId" tdnf repoquery --installed "$COMPONENT" | grep ^"$COMPONENT")
+        if [[ $USE_RPM_QA_CMD =~ [Tt]rue ]] ; then
+            echo "Using rpm -qa command to get installed package."
+            installedPackage=$(docker exec "$containerId" rpm -qa | grep ^"$COMPONENT")
+        else
+            echo "Using tdnf repoquery command to get installed package."
+            # exec as root as the default user for some containers is non-root
+            installedPackage=$(docker exec -u 0 "$containerId" tdnf repoquery --installed "$COMPONENT" | grep ^"$COMPONENT")
+        fi
+        echo "Full Installed Package:       -> $installedPackage"
+        COMPONENT_VERSION=$(echo "$installedPackage" | awk '{n=split($0,a,"-")};{split(a[n],b,".")}; {print a[n-1]"-"b[1]}') # 16.16.0-1
     fi
 
-    echo "Full Installed Package:       -> $installedPackage"
-    COMPONENT_VERSION=$(echo "$installedPackage" | awk '{n=split($0,a,"-")};{split(a[n],b,".")}; {print a[n-1]"-"b[1]}') # 16.16.0-1
     echo "Component Version             -> $COMPONENT_VERSION"
     docker rm -f "$containerId"
 
@@ -310,16 +320,31 @@ function finalize {
     echo "$GOLDEN_IMAGE_NAME_FINAL" >> "$OUTPUT_DIR/PublishedContainers-$IMAGE.txt"
 }
 
+function oras_attach {
+    local image_name=$1
+    oras attach \
+        --artifact-type "application/vnd.microsoft.artifact.lifecycle" \
+        --annotation "vnd.microsoft.artifact.lifecycle.end-of-life.date=$END_OF_LIFE_1_YEAR" \
+        "$image_name"
+}
+
 function publish_to_acr {
     CONTAINER_IMAGE=$1
     if [[ ! "$PUBLISH_TO_ACR" =~ [Tt]rue ]]; then
         echo "+++ Skip publishing to ACR"
         return
     fi
+    local oras_access_token
+
+    echo "+++ az login into Azure ACR $ACR"
+    oras_access_token=$(az acr login --name "$ACR" --expose-token --output tsv --query accessToken)
+    oras login "$ACR.azurecr.io" \
+        --username "00000000-0000-0000-0000-000000000000" \
+        --password "$oras_access_token"
+
     echo "+++ Publish container $CONTAINER_IMAGE"
-    echo "login into ACR: $ACR"
-    az acr login --name "$ACR"
     docker image push "$CONTAINER_IMAGE"
+    oras_attach "$CONTAINER_IMAGE"
 }
 
 function generate_image_sbom {

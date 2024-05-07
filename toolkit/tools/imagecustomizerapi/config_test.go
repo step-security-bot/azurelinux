@@ -6,6 +6,7 @@ package imagecustomizerapi
 import (
 	"testing"
 
+	"github.com/microsoft/azurelinux/toolkit/tools/imagegen/diskutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,15 +15,12 @@ func TestConfigIsValid(t *testing.T) {
 		Storage: &Storage{
 			Disks: []Disk{{
 				PartitionTableType: "gpt",
-				MaxSize:            2,
+				MaxSize:            2 * diskutils.MiB,
 				Partitions: []Partition{
 					{
 						Id:    "esp",
-						Start: 1,
-						Flags: []PartitionFlag{
-							"esp",
-							"boot",
-						},
+						Start: 1 * diskutils.MiB,
+						Type:  PartitionTypeESP,
 					},
 				},
 			}},
@@ -37,7 +35,7 @@ func TestConfigIsValid(t *testing.T) {
 				},
 			},
 		},
-		OS: OS{
+		OS: &OS{
 			ResetBootLoaderType: "hard-reset",
 			Hostname:            "test",
 		},
@@ -52,14 +50,12 @@ func TestConfigIsValidLegacy(t *testing.T) {
 		Storage: &Storage{
 			Disks: []Disk{{
 				PartitionTableType: "gpt",
-				MaxSize:            2,
+				MaxSize:            2 * diskutils.MiB,
 				Partitions: []Partition{
 					{
 						Id:    "boot",
-						Start: 1,
-						Flags: []PartitionFlag{
-							"bios-grub",
-						},
+						Start: 1 * diskutils.MiB,
+						Type:  PartitionTypeBiosGrub,
 					},
 				},
 			}},
@@ -71,7 +67,7 @@ func TestConfigIsValidLegacy(t *testing.T) {
 				},
 			},
 		},
-		OS: OS{
+		OS: &OS{
 			ResetBootLoaderType: "hard-reset",
 			Hostname:            "test",
 		},
@@ -86,16 +82,16 @@ func TestConfigIsValidNoBootType(t *testing.T) {
 		Storage: &Storage{
 			Disks: []Disk{{
 				PartitionTableType: "gpt",
-				MaxSize:            2,
+				MaxSize:            2 * diskutils.MiB,
 				Partitions: []Partition{
 					{
 						Id:    "a",
-						Start: 1,
+						Start: 1 * diskutils.MiB,
 					},
 				},
 			}},
 		},
-		OS: OS{
+		OS: &OS{
 			Hostname:            "test",
 			ResetBootLoaderType: "hard-reset",
 		},
@@ -111,15 +107,12 @@ func TestConfigIsValidMissingBootLoaderReset(t *testing.T) {
 		Storage: &Storage{
 			Disks: []Disk{{
 				PartitionTableType: "gpt",
-				MaxSize:            2,
+				MaxSize:            2 * diskutils.MiB,
 				Partitions: []Partition{
 					{
 						Id:    "esp",
-						Start: 1,
-						Flags: []PartitionFlag{
-							"esp",
-							"boot",
-						},
+						Start: 1 * diskutils.MiB,
+						Type:  PartitionTypeESP,
 					},
 				},
 			}},
@@ -134,7 +127,7 @@ func TestConfigIsValidMissingBootLoaderReset(t *testing.T) {
 				},
 			},
 		},
-		OS: OS{
+		OS: &OS{
 			Hostname: "test",
 		},
 	}
@@ -150,16 +143,16 @@ func TestConfigIsValidMultipleDisks(t *testing.T) {
 			Disks: []Disk{
 				{
 					PartitionTableType: "gpt",
-					MaxSize:            1,
+					MaxSize:            1 * diskutils.MiB,
 				},
 				{
 					PartitionTableType: "gpt",
-					MaxSize:            1,
+					MaxSize:            1 * diskutils.MiB,
 				},
 			},
 			BootType: "legacy",
 		},
-		OS: OS{
+		OS: &OS{
 			ResetBootLoaderType: "hard-reset",
 			Hostname:            "test",
 		},
@@ -176,7 +169,7 @@ func TestConfigIsValidZeroDisks(t *testing.T) {
 			BootType: BootTypeEfi,
 			Disks:    []Disk{},
 		},
-		OS: OS{
+		OS: &OS{
 			Hostname: "test",
 		},
 	}
@@ -188,7 +181,7 @@ func TestConfigIsValidZeroDisks(t *testing.T) {
 
 func TestConfigIsValidBadHostname(t *testing.T) {
 	config := &Config{
-		OS: OS{
+		OS: &OS{
 			Hostname: "test_",
 		},
 	}
@@ -207,7 +200,7 @@ func TestConfigIsValidBadDisk(t *testing.T) {
 				MaxSize:            0,
 			}},
 		},
-		OS: OS{
+		OS: &OS{
 			Hostname: "test",
 		},
 	}
@@ -222,12 +215,12 @@ func TestConfigIsValidMissingEsp(t *testing.T) {
 		Storage: &Storage{
 			Disks: []Disk{{
 				PartitionTableType: "gpt",
-				MaxSize:            2,
+				MaxSize:            2 * diskutils.MiB,
 				Partitions:         []Partition{},
 			}},
 			BootType: "efi",
 		},
-		OS: OS{
+		OS: &OS{
 			ResetBootLoaderType: "hard-reset",
 			Hostname:            "test",
 		},
@@ -244,12 +237,12 @@ func TestConfigIsValidMissingBiosBoot(t *testing.T) {
 		Storage: &Storage{
 			Disks: []Disk{{
 				PartitionTableType: "gpt",
-				MaxSize:            2,
+				MaxSize:            2 * diskutils.MiB,
 				Partitions:         []Partition{},
 			}},
 			BootType: "legacy",
 		},
-		OS: OS{
+		OS: &OS{
 			ResetBootLoaderType: "hard-reset",
 			Hostname:            "test",
 		},
@@ -266,15 +259,12 @@ func TestConfigIsValidInvalidMountPoint(t *testing.T) {
 		Storage: &Storage{
 			Disks: []Disk{{
 				PartitionTableType: "gpt",
-				MaxSize:            2,
+				MaxSize:            2 * diskutils.MiB,
 				Partitions: []Partition{
 					{
 						Id:    "esp",
-						Start: 1,
-						Flags: []PartitionFlag{
-							"esp",
-							"boot",
-						},
+						Start: 1 * diskutils.MiB,
+						Type:  PartitionTypeESP,
 					},
 				},
 			}},
@@ -289,7 +279,7 @@ func TestConfigIsValidInvalidMountPoint(t *testing.T) {
 				},
 			},
 		},
-		OS: OS{
+		OS: &OS{
 			ResetBootLoaderType: "hard-reset",
 			Hostname:            "test",
 		},
@@ -306,15 +296,12 @@ func TestConfigIsValidKernelCLI(t *testing.T) {
 		Storage: &Storage{
 			Disks: []Disk{{
 				PartitionTableType: "gpt",
-				MaxSize:            2,
+				MaxSize:            2 * diskutils.MiB,
 				Partitions: []Partition{
 					{
 						Id:    "esp",
-						Start: 1,
-						Flags: []PartitionFlag{
-							"esp",
-							"boot",
-						},
+						Start: 1 * diskutils.MiB,
+						Type:  PartitionTypeESP,
 					},
 				},
 			}},
@@ -329,7 +316,7 @@ func TestConfigIsValidKernelCLI(t *testing.T) {
 				},
 			},
 		},
-		OS: OS{
+		OS: &OS{
 			ResetBootLoaderType: "hard-reset",
 			Hostname:            "test",
 			KernelCommandLine: KernelCommandLine{

@@ -352,8 +352,11 @@ cp $GRUB_PXE_MODULE_SOURCE $EFI_BOOT_DIR/$GRUB_PXE_MODULE_NAME
 %config(noreplace) %{_sysconfdir}/grub.d/41_custom
 
 %changelog
-* Tue Mar 26 2024 Gary Swalling <gaswal@microsoft.com> - 2.12-1
+* Tue May 07 2024 Gary Swalling <gaswal@microsoft.com> - 2.12-1
 - Upgrade to 2.12 - fixes and features in latest full release
+
+* Mon Apr 15 2024 Dan Streetman <ddstreet@microsoft.com> - 2.06-18
+- update grub to sbat 4
 
 * Tue Mar 19 2024 Cameron Baird <cameronbaird@microsoft.com> - 2.06-17
 - Introduce grub2-tools-minimal subpackage
