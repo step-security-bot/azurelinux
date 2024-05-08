@@ -20,7 +20,7 @@ index 2b7a7a0fd..705304358 100644
 +	traceeventsdata, _ := vmi.Annotations[v1.TraceEventsAnnotation]
 +	if traceeventsdata != "" {
 +		initializeQEMUCmdAndQEMUArg(domain)
-+		traceevents = strings.Split(traceeventdata, " ")
++		traceevents := strings.Split(traceeventsdata, " ")
 +		for _, traceevent := range traceevents {
 +			domain.Spec.QEMUCmd.QEMUArg = append(domain.Spec.QEMUCmd.QEMUArg, api.Arg{Value: "-trace"})
 +			domain.Spec.QEMUCmd.QEMUArg = append(domain.Spec.QEMUCmd.QEMUArg, api.Arg{Value: traceevent})
