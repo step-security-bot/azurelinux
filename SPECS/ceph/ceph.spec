@@ -11,6 +11,7 @@ URL:            https://ceph.io/
 Vendor:         Microsoft Corporation
 Distribution:   Mariner
 Source0:        https://download.ceph.com/tarballs/%{name}-%{version}.tar.gz
+Patch0:         CVE-2021-24032.patch
 
 #
 # Copyright (C) 2004-2019 The Ceph Project Developers. See COPYING file
@@ -850,6 +851,7 @@ ${CMAKE} .. \
     -DWITH_MANPAGE=ON \
     -DWITH_PYTHON3=%{python3_version} \
     -DWITH_MGR_DASHBOARD_FRONTEND=OFF \
+    -DWITH_SEASTAR=OFF\
 %if 0%{without mgr_diskprediction}
     -DMGR_DISABLED_MODULES=diskprediction_local\
 %endif
@@ -1016,7 +1018,6 @@ install -m 644 -D monitoring/ceph-mixin/prometheus_alerts.yml %{buildroot}/etc/p
 %dir %{python3_sitelib}/ceph_volume
 %{python3_sitelib}/ceph_volume/*
 %{python3_sitelib}/ceph_volume-*
-#%{_mandir}/man8/ceph-deploy.8*
 %{_mandir}/man8/ceph-create-keys.8*
 %{_mandir}/man8/ceph-run.8*
 %{_mandir}/man8/crushtool.8*
@@ -1436,7 +1437,6 @@ fi
 %{_bindir}/rgw-orphan-list
 %{_bindir}/rgw-gap-list
 %{_bindir}/rgw-gap-list-comparator
-#%{_libdir}/libradosgw.so*
 %{_libdir}/librgw.so*
 %{_mandir}/man8/radosgw.8*
 %{_mandir}/man8/rgw-policy-check.8*
