@@ -18,7 +18,6 @@ Distribution:   Mariner
 Group:          System Environment/Kernel
 Source0:        %{_mariner_sources_url}/kernel-uvm-%{version}.tar.gz
 Source1:        config
-Source2:        cgroup_v2.cfg
 BuildRequires:  audit-devel
 BuildRequires:  bash
 BuildRequires:  bc
@@ -117,10 +116,6 @@ KCFLAGS="%{kcflags}" make VERBOSE=1 KBUILD_BUILD_VERSION="1" KBUILD_BUILD_HOST="
 install -vdm 755 %{buildroot}%{_prefix}/src/linux-headers-%{uname_r}
 install -vdm 755 %{buildroot}/lib/modules/%{uname_r}
 
-# Add cgroups v2 config
-mkdir -p %{buildroot}%{_sysconfdir}/default/grub.d
-install -m 750 %{SOURCE2} %{buildroot}%{_sysconfdir}/default/grub.d/cgroup_v2.cfg
-
 D=%{buildroot}%{_datadir}/cloud-hypervisor
 install -D -m 644 %{image} $D/%{image_fname}
 install -D -m 644 arch/%{arch}/boot/bzImage $D/bzImage
@@ -153,7 +148,6 @@ sed -i 's/systemd.legacy_systemd_cgroup_controller=yes systemd.unified_cgroup_hi
 %license COPYING
 %{_datadir}/cloud-hypervisor/%{image_fname}
 %{_datadir}/cloud-hypervisor/bzImage
-%config(noreplace) %{_sysconfdir}/default/grub.d/cgroup_v2.cfg
 %dir %{_datadir}/cloud-hypervisor
 %ifarch x86_64
 /lib/modules/%{name}/vmlinux
