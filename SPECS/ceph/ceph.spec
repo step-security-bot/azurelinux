@@ -12,6 +12,7 @@ Vendor:         Microsoft Corporation
 Distribution:   Mariner
 Source0:        https://download.ceph.com/tarballs/%{name}-%{version}.tar.gz
 Patch0:         CVE-2021-24032.patch
+Patch1:         CVE-2021-28361.patch
 
 #
 # Copyright (C) 2004-2019 The Ceph Project Developers. See COPYING file
@@ -1821,6 +1822,7 @@ exit 0
 %changelog
 * Mon May 06 2024 Henry Beberman <henry.beberman@microsoft.com> - 18.2.1-1
 - Upgrade to version 18.2.1 to resolve multiple CVEs
+- Patch CVE-2021-24032 and CVE-2021-28361
 
 * Wed Sep 20 2023 Jon Slobodzian <joslobo@microsoft.com> - 16.2.10-2
 - Recompile with stack-protection fixed gcc version (CVE-2023-4039)
