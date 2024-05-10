@@ -190,11 +190,11 @@ install -m 644 initscript/logrotate.stap-server %{buildroot}%{_sysconfdir}/logro
 make %{?_smp_mflags} check
 
 test_status=0
-%{buildroot}%{_bindir}/stap -ve 'probe begin { printf("hello\n"); exit() }'
+%{buildroot}%{_bindir}/stap -vvv -I %{buildroot}%{_sysconfdir}/systemtap -e 'probe begin { printf("hello\n"); exit() }'
 if [[ $? -ne 0 ]]; then
     test_status=1
 fi
-%{buildroot}%{_bindir}/stap -c hostname  -e 'global ops; probe syscall.*.return { ops[probefunc()] <<< 1; }'
+%{buildroot}%{_bindir}/stap -vvv -I %{buildroot}%{_sysconfdir}/systemtap -c hostname -e 'global ops; probe syscall.*.return { ops[probefunc()] <<< 1; }'
 if [[ $? -ne 0 ]]; then
     test_status=1
 fi
