@@ -45,6 +45,9 @@ BuildRequires:  rpm-devel
 %endif
 Requires:       elfutils
 Requires:       gcc
+%if %{with_check}
+BuildRequires:  kernel-devel
+%endif
 Requires:       kernel-devel
 Requires:       make
 Requires:       %{name}-runtime = %{version}-%{release}
