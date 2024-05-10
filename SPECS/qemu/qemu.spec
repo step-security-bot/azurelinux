@@ -1382,7 +1382,7 @@ run_configure() {
         --with-suffix="%{name}" \
         --firmwarepath="%{firmwaredirs}" \
         --meson="%{__meson}" \
-        --enable-trace-backends=dtrace \
+        --enable-trace-backends=dtrace,simple \
         --with-coroutine=ucontext \
         --with-git=git \
         --tls-priority=@QEMU,SYSTEM \
@@ -1782,6 +1782,11 @@ echo "Testing %{name}-build"
 popd
 
 # endif !tools_only
+%endif
+# Check trace stap
+%ifarch x86_64
+qemu-trace-stap list qemu-system-x86_64
+qemu-trace-stap run qemu-system-x86_64 'migrat*'
 %endif
 
 
