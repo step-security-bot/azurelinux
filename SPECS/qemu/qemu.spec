@@ -1785,8 +1785,8 @@ popd
 %endif
 # Check trace stap
 %ifarch x86_64
-qemu-trace-stap list qemu-system-x86_64
-qemu-trace-stap run qemu-system-x86_64 'migrat*'
+%{buildroot}%{_bindir}/qemu-trace-stap list qemu-system-x86_64
+%{buildroot}%{_bindir}/qemu-trace-stap run qemu-system-x86_64 'migrat*'
 %endif
 
 
