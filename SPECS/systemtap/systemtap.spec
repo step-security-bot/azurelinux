@@ -188,7 +188,7 @@ install -m 644 initscript/logrotate.stap-server %{buildroot}%{_sysconfdir}/logro
 
 %check
 make %{?_smp_mflags} check
-
+find %{buildroot}
 test_status=0
 %{buildroot}%{_bindir}/stap -vvv -I %{buildroot}%{_sysconfdir}/systemtap -e 'probe begin { printf("hello\n"); exit() }'
 if [[ $? -ne 0 ]]; then
