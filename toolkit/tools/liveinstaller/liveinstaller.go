@@ -20,6 +20,7 @@ import (
 	"github.com/microsoft/azurelinux/toolkit/tools/internal/jsonutils"
 	"github.com/microsoft/azurelinux/toolkit/tools/internal/logger"
 	"github.com/microsoft/azurelinux/toolkit/tools/internal/shell"
+	"github.com/sirupsen/logrus"
 
 	"golang.org/x/sys/unix"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -299,7 +300,10 @@ func calamaresInstall(templateConfigFile string, args imagerArguments) (err erro
 		return
 	}
 
-	return shell.ExecuteLive(squashErrors, "calamares", "-platform", "linuxfb")
+	return shell.NewExecBuilder("calamares", "-platform", "linuxfb").
+		LogLevel(logrus.DebugLevel, logrus.WarnLevel).
+		EnvironmentVariables(newEnv).
+		Execute()
 }
 
 func generateCalamaresLaunchScript(launchScriptPath string, args imagerArguments) (err error) {
@@ -396,17 +400,11 @@ func terminalAttendedInstall(cfg configuration.Config, progress chan int, status
 		return
 	}
 
-	onStdout := func(args ...interface{}) {
+	onStdout := func(line string) {
 		const (
 			progressPrefix = "progress:"
 			actionPrefix   = "action:"
 		)
-
-		if len(args) == 0 {
-			return
-		}
-
-		line := args[0].(string)
 
 		if strings.HasPrefix(line, progressPrefix) {
 			reportedProgress, err := strconv.Atoi(strings.TrimPrefix(line, progressPrefix))
@@ -423,7 +421,10 @@ func terminalAttendedInstall(cfg configuration.Config, progress chan int, status
 
 	args.emitProgress = true
 	program, commandArgs := formatImagerCommand(args)
-	err = shell.ExecuteLiveWithCallback(onStdout, logger.Log.Warn, false, program, commandArgs...)
+	err = shell.NewExecBuilder(program, commandArgs...).
+		LogLevel(logrus.TraceLevel, logrus.WarnLevel).
+		StdoutCallback(onStdout).
+		Execute()
 
 	return
 }
