@@ -83,7 +83,7 @@ func runUserScript(scriptIndex int, script imagecustomizerapi.Script, scriptsNam
 		}
 
 		// Write the script to file.
-		tempScriptFullPath, err = createTempScriptFile(script, scriptsName, imageChroot)
+		tempScriptFullPath, err = createTempScriptFile(script.Content, scriptsName, imageChroot)
 		if err != nil {
 			return err
 		}
@@ -102,9 +102,21 @@ func runUserScript(scriptIndex int, script imagecustomizerapi.Script, scriptsNam
 		args = append(args, script.Arguments...)
 	}
 
+	// Collect environment variables.
+	env := []string(nil)
+	if len(script.EnvironmentVariables) > 0 {
+		env = append(env, shell.CurrentEnvironment()...)
+		for key, value := range script.EnvironmentVariables {
+			env = append(env, fmt.Sprintf("%s=%s", key, value))
+		}
+	}
+
 	// Run the script.
 	err = imageChroot.UnsafeRun(func() error {
-		return shell.ExecuteLiveWithErr(1, process, args...)
+		return shell.NewExecBuilder(process, args...).
+			ErrorStderrLines(1).
+			EnvironmentVariables(env).
+			Execute()
 	})
 	if err != nil {
 		return fmt.Errorf("script (%s) failed:\n%w", scriptLogName, err)
@@ -134,7 +146,7 @@ func createScriptLogName(scriptIndex int, script imagecustomizerapi.Script, scri
 	}
 }
 
-func createTempScriptFile(script imagecustomizerapi.Script, scriptsName string, imageChroot *safechroot.Chroot,
+func createTempScriptFile(scriptContent string, scriptsName string, imageChroot *safechroot.Chroot,
 ) (string, error) {
 	chrootTempDir := filepath.Join(imageChroot.RootDir(), "tmp")
 
@@ -148,7 +160,7 @@ func createTempScriptFile(script imagecustomizerapi.Script, scriptsName string, 
 	tempFilePath := tempFile.Name()
 
 	// Write the script's content.
-	_, err = tempFile.WriteString(script.Content)
+	_, err = tempFile.WriteString(scriptContent)
 	if err != nil {
 		return "", fmt.Errorf("failed to write temp file for script:\n%w", err)
 	}

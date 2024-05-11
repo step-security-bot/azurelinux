@@ -10,3 +10,10 @@ scripts:
 
   finalizeCustomization:
   - path: scripts/finalizecustomizationscript.sh
+  
+  - content: |
+      echo "This is an finalizeCustomization inline script: $A $B"
+      
+    environmentVariables:
+      A: HELLO
+      B: WORLD
