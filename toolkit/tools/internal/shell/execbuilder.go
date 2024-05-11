@@ -256,7 +256,7 @@ func readExecPipe(pipe io.Reader, wg *sync.WaitGroup, logCallback LogCallback, l
 			logCallback(line)
 		}
 
-		if logLevel <= logrus.TraceLevel {
+		if logLevel <= logrus.TraceLevel && line != "" {
 			// Log the line.
 			logger.Log.Log(logLevel, line)
 		}

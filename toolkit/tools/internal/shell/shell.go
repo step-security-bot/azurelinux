@@ -74,14 +74,14 @@ func PermanentlyStopAllChildProcesses(signal unix.Signal) {
 // Execute runs the provided command.
 func Execute(program string, args ...string) (stdout, stderr string, err error) {
 	return NewExecBuilder(program, args...).
-		LogLevel(logrus.DebugLevel, logrus.DebugLevel).
+		LogLevel(logrus.TraceLevel, logrus.DebugLevel).
 		ExecuteCaptureOuput()
 }
 
 // ExecuteWithStdin - Run the command and use Stdin to pass input during execution
 func ExecuteWithStdin(input, program string, args ...string) (stdout, stderr string, err error) {
 	return NewExecBuilder(program, args...).
-		LogLevel(logrus.DebugLevel, logrus.DebugLevel).
+		LogLevel(logrus.TraceLevel, logrus.DebugLevel).
 		Stdin(input).
 		ExecuteCaptureOuput()
 }
