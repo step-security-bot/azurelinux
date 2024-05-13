@@ -152,7 +152,7 @@ sed -i "s#"devel"#"dev"#g" stap-prep
 	--disable-silent-rules
 
 make
-find %{buildroot}
+find .
 
 %install
 [ %{buildroot} != / ] && rm -rf ""
@@ -195,6 +195,7 @@ mkdir -p %{buildroot}%{_sysconfdir}/logrotate.d
 install -m 644 initscript/logrotate.stap-server %{buildroot}%{_sysconfdir}/logrotate.d/stap-server
 
 %find_lang %{name}
+find %{buildroot}
 
 %check
 make %{?_smp_mflags} check
