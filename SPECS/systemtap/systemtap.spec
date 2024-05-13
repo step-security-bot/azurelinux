@@ -152,6 +152,7 @@ sed -i "s#"devel"#"dev"#g" stap-prep
 	--disable-silent-rules
 
 make
+find %{buildroot}
 
 %install
 [ %{buildroot} != / ] && rm -rf ""
