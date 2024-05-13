@@ -46,9 +46,8 @@ BuildRequires:  rpm-devel
 Requires:       elfutils
 Requires:       gcc
 %if %{with_check}
-BuildRequires:  kernel-devel = %{kernel_version_release}
-BuildRequires:  kernel-debuginfo = %{kernel_version_release}
-BuildRequires:  kernel-headers = %{kernel_version_release}
+BuildRequires:  kernel-devel
+BuildRequires:  kernel-headers
 %endif
 Requires:       kernel-devel
 Requires:       make
