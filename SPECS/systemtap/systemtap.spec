@@ -155,6 +155,7 @@ make
 find .
 
 %install
+make DESTDIR=$RPM_BUILD_ROOT install
 [ %{buildroot} != / ] && rm -rf ""
 %makeinstall
 
