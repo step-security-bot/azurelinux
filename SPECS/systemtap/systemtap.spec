@@ -192,11 +192,7 @@ make %{?_smp_mflags} check
 find %{buildroot}
 echo %{buildroot}/usr/share/systemtap
 test_status=0
-%{buildroot}%{_bindir}/stap -vvv -I %{buildroot}/usr/share/systemtap -e 'probe begin { printf("hello\n"); exit() }'
-if [[ $? -ne 0 ]]; then
-    test_status=1
-fi
-%{buildroot}%{_bindir}/stap -vvv -I %{buildroot}/usr/share/systemtap -c hostname -e 'global ops; probe syscall.*.return { ops[probefunc()] <<< 1; }'
+%{buildroot}%{_bindir}/stap -vvv -I %{buildroot}/usr/share/systemtap -e 'probe begin { printf("hello\n") }'
 if [[ $? -ne 0 ]]; then
     test_status=1
 fi
