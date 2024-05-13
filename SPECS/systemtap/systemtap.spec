@@ -118,6 +118,7 @@ SystemTap server is the server component of an instrumentation system for system
 
 %prep
 %setup -q
+%autopatch -p1
 sed -i "s#"kernel"#"linux"#g" stap-prep
 sed -i "s#"devel"#"dev"#g" stap-prep
 
