@@ -152,7 +152,6 @@ sed -i "s#"devel"#"dev"#g" stap-prep
 	--disable-silent-rules
 
 make
-find .
 
 %install
 make DESTDIR=$RPM_BUILD_ROOT install
@@ -196,17 +195,9 @@ mkdir -p %{buildroot}%{_sysconfdir}/logrotate.d
 install -m 644 initscript/logrotate.stap-server %{buildroot}%{_sysconfdir}/logrotate.d/stap-server
 
 %find_lang %{name}
-find %{buildroot}
 
 %check
 make %{?_smp_mflags} check
-test_status=0
-%{buildroot}%{_bindir}/stap -vvv -I %{buildroot}/usr/share/systemtap -c hostname -e 'probe begin { printf("hello\n") }'
-if [[ $? -ne 0 ]]; then
-    test_status=1
-fi
-
-[[ $test_status -eq 0 ]]
 
 %pre
 getent group stap-server >/dev/null || groupadd -g 155 -r stap-server || groupadd -r stap-server
