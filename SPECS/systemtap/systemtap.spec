@@ -336,6 +336,7 @@ fi
 %files runtime
 %defattr(-,root,root)
 %attr(4111,root,root) %{_bindir}/staprun
+%dir %{_libexecdir}/systemtap
 %{_libexecdir}/systemtap/stap-env
 %{_libexecdir}/systemtap/stap-authorize-cert
 %{_libexecdir}/systemtap/stapio
@@ -353,6 +354,7 @@ fi
 %files server
 %defattr(-,root,root)
 %{_bindir}/stap-server
+%dir %{_libexecdir}/systemtap
 %{_libexecdir}/systemtap/stap-serverd
 %{_libexecdir}/systemtap/stap-start-server
 %{_libexecdir}/systemtap/stap-stop-server
