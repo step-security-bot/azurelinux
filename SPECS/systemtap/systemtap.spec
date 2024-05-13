@@ -16,6 +16,13 @@ Distribution:   Mariner
 Group:          Development/System
 URL:            https://sourceware.org/systemtap/
 Source0:        https://sourceware.org/systemtap/ftp/releases/%{name}-%{version}.tar.gz
+
+# Patches to fix stap build errors
+Patch0:         0001-runtime-adapt-to-Werror-implicit-fallthrough-5.patch
+Patch1:         0002-runtime-linux-5.14-compat-linux-panic_notifier.h.patch
+Patch2:         0003-PR28079-Adapt-to-kernel-5.14-task_struct.__state-cha.patch
+Patch3:         0004-Use-task_state-tapset-function-to-avoid-task_struct-.patch
+
 BuildRequires:  elfutils-devel
 BuildRequires:  elfutils-libelf-devel
 BuildRequires:  glibc-devel
@@ -189,10 +196,8 @@ install -m 644 initscript/logrotate.stap-server %{buildroot}%{_sysconfdir}/logro
 
 %check
 make %{?_smp_mflags} check
-find %{buildroot}
-echo %{buildroot}/usr/share/systemtap
 test_status=0
-%{buildroot}%{_bindir}/stap -vvv -I %{buildroot}/usr/share/systemtap -e 'probe begin { printf("hello\n") }'
+%{buildroot}%{_bindir}/stap -vvv -I %{buildroot}/usr/share/systemtap -c hostname -e 'probe begin { printf("hello\n") }'
 if [[ $? -ne 0 ]]; then
     test_status=1
 fi
