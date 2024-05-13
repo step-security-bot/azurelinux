@@ -336,6 +336,7 @@ fi
 %attr(4111,root,root) %{_bindir}/staprun
 %{_libexecdir}/systemtap/stap-env
 %{_libexecdir}/systemtap/stap-authorize-cert
+%{_libexecdir}/systemtap/stapio
 %if %{with_crash}
 %{_libdir}/systemtap/staplog.so*
 %endif
