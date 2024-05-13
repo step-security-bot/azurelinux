@@ -29,7 +29,7 @@
 Summary:        Linux Kernel
 Name:           kernel
 Version:        6.6.29.1
-Release:        3%{?dist}
+Release:        4%{?dist}
 License:        GPLv2
 Vendor:         Microsoft Corporation
 Distribution:   Azure Linux
@@ -404,6 +404,9 @@ echo "initrd of kernel %{uname_r} removed" >&2
 %{_sysconfdir}/bash_completion.d/bpftool
 
 %changelog
+* Mon May 13 2024 Manuel Huber <mahuber@microsoft.com> - 6.6.29.1-4
+- Enable confidential guest options
+
 * Fri May 03 2024 Rachel Menge <rachelmenge@microsoft.com> - 6.6.29.1-3
 - Enable CONFIG_IGC module
 
