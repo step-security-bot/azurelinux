@@ -18,7 +18,7 @@ Source1:        https://git.savannah.gnu.org/cgit/gnulib.git/snapshot/gnulib-%{g
 Source2:        sbat.csv.in
 Source3:        macros.grub2
 # Revert change to TFTP receive in commit 26cfaa8a
-Patch:          skip-verify.patch
+Patch:          more-verify.patch
 BuildRequires:  autoconf
 BuildRequires:  device-mapper-devel
 BuildRequires:  python3
@@ -355,7 +355,7 @@ cp $GRUB_PXE_MODULE_SOURCE $EFI_BOOT_DIR/$GRUB_PXE_MODULE_NAME
 %config(noreplace) %{_sysconfdir}/grub.d/41_custom
 
 %changelog
-* Mon May 13 2024 Gary Swalling <gaswal@microsoft.com> - 2.12-1
+* Tue May 14 2024 Gary Swalling <gaswal@microsoft.com> - 2.12-1
 - Upgrade to 2.12 - fixes and features in latest full release
 
 * Mon Apr 15 2024 Dan Streetman <ddstreet@microsoft.com> - 2.06-18
