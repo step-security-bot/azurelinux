@@ -35,8 +35,10 @@ Go is an open source programming language that makes it easy to build simple, re
 # Setup go 1.4 bootstrap source
 tar xf %{SOURCE1} --no-same-owner
 patch -Np1 --ignore-whitespace < %{PATCH0}
+mv -v go go-bootstrap-00
 
-mv -v go go-bootstrap
+tar xf %{SOURCE2} --no-same-owner
+mv -v go go-bootstrap-01
 
 %setup -q -n go
 
@@ -49,26 +51,24 @@ mv -v go go-bootstrap
 # PS: Since go compiles fairly quickly, the extra overhead is arounnd 2-3 minutes
 #     on a reasonable machine.
 
-# Build go 1.4 bootstrap
-pushd %{_topdir}/BUILD/go-bootstrap/src
-CGO_ENABLED=0 ./make.bash
-popd
-mv -v %{_topdir}/BUILD/go-bootstrap %{_libdir}/golang
-export GOROOT=%{_libdir}/golang
+# Use prev bootstrap to compile next bootstrap.
+function go_bootstrap() {
+  local bootstrap=$1
+  local new_root=%{_topdir}/BUILD/go-bootstrap-${bootstrap}
+  (
+    cd ${new_root}/src
+    CGO_ENABLED=0 ./make.bash
+  )
+  # Nuke the older bootstrapper
+  rm -rf %{_libdir}/golang
+  # Install the new bootstrapper
+  mv -v $new_root %{_libdir}/golang
+  export GOROOT=%{_libdir}/golang
+  export GOROOT_BOOTSTRAP=%{_libdir}/golang
+}
 
-# Use go1.4 bootstrap to compile go%{bootstrap_compiler_version} (bootstrap)
-export GOROOT_BOOTSTRAP=%{_libdir}/golang
-mkdir -p %{_topdir}/BUILD/go%{bootstrap_compiler_version}
-tar xf %{SOURCE2} -C %{_topdir}/BUILD/go%{bootstrap_compiler_version} --strip-components=1
-pushd %{_topdir}/BUILD/go%{bootstrap_compiler_version}/src
-CGO_ENABLED=0 ./make.bash
-popd
-
-# Nuke the older go1.4 bootstrap
-rm -rf %{_libdir}/golang
-
-# Make go%{bootstrap_compiler_version} as the new bootstrapper
-mv -v %{_topdir}/BUILD/go1.19.12 %{_libdir}/golang
+go_bootstrap 00
+go_bootstrap 01
 
 # Build current go version
 export GOHOSTOS=linux
@@ -79,9 +79,10 @@ export GOROOT="`pwd`"
 export GOPATH=%{gopath}
 export GOROOT_FINAL=%{_bindir}/go
 rm -f  %{gopath}/src/runtime/*.c
-pushd src
-./make.bash --no-clean
-popd
+(
+  cd src
+  ./make.bash --no-clean
+)
 
 %install
 
@@ -142,6 +143,7 @@ fi
 
 %changelog
 * Tue May 14 2024 Muhammad Falak <mwani@microsoft.com> - 1.21.10-1
+- Introduce function in spec to simplify bootstrapping
 - Bump version to 1.21.10
 
 * Fri Feb 02 2024 Muhammad Falak <mwani@microsoft.com> - 1.21.6-1
