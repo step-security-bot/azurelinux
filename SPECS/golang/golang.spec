@@ -13,7 +13,7 @@
 %define __find_requires %{nil}
 Summary:        Go
 Name:           golang
-Version:        1.21.6
+Version:        1.21.10
 Release:        1%{?dist}
 License:        BSD-3-Clause
 Vendor:         Microsoft Corporation
@@ -141,6 +141,9 @@ fi
 %{_bindir}/*
 
 %changelog
+* Tue May 14 2024 Muhammad Falak <mwani@microsoft.com> - 1.21.10-1
+- Bump version to 1.21.10
+
 * Fri Feb 02 2024 Muhammad Falak <mwani@microsoft.com> - 1.21.6-1
 - Bump version to 1.21.6
 - Include go.env in GOROOT
