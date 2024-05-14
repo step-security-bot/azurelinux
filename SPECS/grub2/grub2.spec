@@ -18,7 +18,7 @@ Source1:        https://git.savannah.gnu.org/cgit/gnulib.git/snapshot/gnulib-%{g
 Source2:        sbat.csv.in
 Source3:        macros.grub2
 # Revert change to TFTP receive in commit 26cfaa8a
-Patch0001:      revert-port.patch
+Patch:          skip-verify.patch
 BuildRequires:  autoconf
 BuildRequires:  device-mapper-devel
 BuildRequires:  python3
