@@ -1,7 +1,7 @@
 Summary:        Kubernetes Custom, Resource, and External Metric APIs implemented to work with Prometheus.
 Name:           prometheus-adapter
 Version:        0.10.0
-Release:        11%{?dist}
+Release:        12%{?dist}
 License:        Apache-2.0
 Vendor:         Microsoft Corporation
 Distribution:   Mariner
@@ -41,6 +41,9 @@ make test
 %doc README.md RELEASE.md
 
 %changelog
+* Tue May 14 2024 CBL-Mariner Servicing Account <cblmargh@microsoft.com> - 0.10.0-12
+- Bump release to rebuild with go 1.21.10
+
 * Fri Feb 02 2024 CBL-Mariner Servicing Account <cblmargh@microsoft.com> - 0.10.0-11
 - Bump release to rebuild with go 1.21.6
 

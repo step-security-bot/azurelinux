@@ -3,7 +3,7 @@
 Summary: The open-source application container engine
 Name:    moby-engine
 Version: 24.0.9
-Release: 3%{?dist}
+Release: 4%{?dist}
 License: ASL 2.0
 Group:   Tools/Container
 URL: https://mobyproject.org
@@ -126,6 +126,9 @@ fi
 %{_unitdir}/*
 
 %changelog
+* Tue May 14 2024 CBL-Mariner Servicing Account <cblmargh@microsoft.com> - 24.0.9-4
+- Bump release to rebuild with go 1.21.10
+
 * Fri May 03 2024 Chris Gunn <chrisgun@microsoft.com> - 24.0.9-3
 - Fix for CVE-2023-45288
 
