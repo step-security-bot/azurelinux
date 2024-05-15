@@ -20,6 +20,8 @@ Source3:        macros.grub2
 # Revert change to TFTP receive in commit 26cfaa8a
 Patch:          more-verify.patch
 Patch:          tpm.patch
+Patch:          crumb-verify.patch
+Patch:          crumb-main.patch
 BuildRequires:  autoconf
 BuildRequires:  device-mapper-devel
 BuildRequires:  python3
