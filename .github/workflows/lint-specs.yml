@@ -22,8 +22,13 @@ jobs:
 
     steps:
       # Checkout the branch of our repo that triggered this action
+      - name: Harden Runner
+        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.7.1
+        with:
+          egress-policy: audit
+
       - name: Workflow trigger checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
       - name: Get base commit for PRs
         if: ${{ github.event_name == 'pull_request' }}
@@ -47,7 +52,7 @@ jobs:
           echo "updated-specs=$(echo ${changed_specs})" >> $GITHUB_ENV
 
       - name: Main branch checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           ref: 'main'
           path: 'main-checkout'
@@ -55,7 +60,7 @@ jobs:
       # Our linter is based on the spec-cleaner tool from the folks at openSUSE
       # We apply a patch to modify it for CBL-Mariner's needs
       - name: spec-cleaner checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           repository: 'rpm-software-management/spec-cleaner'
           ref: 'spec-cleaner-1.2.0'
@@ -63,7 +68,7 @@ jobs:
 
       # For consistency, we use the same major/minor version of Python that CBL-Mariner ships
       - name: Setup Python 3.7
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
         with:
           python-version: 3.7
 
@@ -97,7 +102,7 @@ jobs:
           fi
           exit 0
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2 # v2.3.1
         if: ${{ always() }}
         with:
           name: linted_specs

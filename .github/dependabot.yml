@@ -1,0 +1,21 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: pip
+    directory: /toolkit/scripts
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /toolkit/scripts/toolchain/container
+    schedule:
+      interval: daily
+
+  - package-ecosystem: gomod
+    directory: /toolkit/tools
+    schedule:
+      interval: daily

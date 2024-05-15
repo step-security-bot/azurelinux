@@ -3,7 +3,7 @@
 #
 # Dockerfile to Mariner toolchain from scratch
 #
-FROM mcr.microsoft.com/cbl-mariner/base/core:2.0.20240123
+FROM mcr.microsoft.com/cbl-mariner/base/core:2.0.20240123@sha256:82314abb594a695fd8817774e8b7f101934902cc1d99b3075e80acbc8b9b23ee
 
 # Tag the layers so we can clean up all the containers associated with a build directory
 ARG MARINER_BUILD_DIR
